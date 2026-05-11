@@ -1,0 +1,456 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   IAE – Academic Precision Design System
+   Primary #005FB8 · BG #f9f9f9 · Surface #f3f3f3 · Outline #c2c6d4
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Embedded fonts ───────────────────────────────────────────────────── */
+@font-face {
+    font-family: 'Inter';
+    src: url('../fonts/Inter-Regular.ttf');
+}
+@font-face {
+    font-family: 'Inter Medium';
+    src: url('../fonts/Inter-Medium.ttf');
+}
+@font-face {
+    font-family: 'Inter SemiBold';
+    src: url('../fonts/Inter-SemiBold.ttf');
+}
+@font-face {
+    font-family: 'Material Icons';
+    src: url('../fonts/MaterialIcons-Regular.ttf');
+}
+
+/* ── Root ─────────────────────────────────────────────────────────────── */
+.root-pane {
+    -fx-background-color: #f9f9f9;
+    -fx-font-family: 'Inter';
+    -fx-font-size: 13px;
+}
+
+/* ── App header (title row above menu bar) ────────────────────────────── */
+.app-header {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #c2c6d4 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 12 0 0;
+    -fx-min-height: 40px;
+    -fx-max-height: 40px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 0;
+}
+.app-badge {
+    -fx-background-color: #005FB8;
+    -fx-text-fill: #ffffff;
+    -fx-font-family: 'Inter SemiBold';
+    -fx-font-size: 12px;
+    -fx-padding: 0 10 0 10;
+    -fx-min-width: 44px;
+    -fx-max-width: 44px;
+    -fx-min-height: 40px;
+    -fx-max-height: 40px;
+    -fx-alignment: CENTER;
+}
+.app-title {
+    -fx-font-family: 'Inter Medium';
+    -fx-font-size: 13px;
+    -fx-text-fill: #1a1c1c;
+    -fx-padding: 0 0 0 12;
+}
+.toolbar-icon-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 8 10 8 10;
+    -fx-cursor: hand;
+    -fx-background-radius: 4;
+    -fx-min-height: 40px;
+    -fx-max-height: 40px;
+}
+.toolbar-icon-btn:hover   { -fx-background-color: #eeeeee; }
+.toolbar-icon-btn:pressed { -fx-background-color: #e2e2e2; }
+.toolbar-icon {
+    -fx-font-family: 'Material Icons';
+    -fx-font-size: 20px;
+    -fx-text-fill: #424752;
+}
+.toolbar-separator {
+    -fx-background-color: #c2c6d4;
+    -fx-pref-width: 1;
+    -fx-min-width: 1;
+    -fx-max-width: 1;
+    -fx-min-height: 20px;
+    -fx-max-height: 20px;
+    -fx-padding: 0 8 0 8;
+}
+
+/* ── Menu bar ──────────────────────────────────────────────────────────── */
+.menu-bar {
+    -fx-background-color: #f3f3f3;
+    -fx-border-color: transparent transparent #c2c6d4 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 0 0 0;
+}
+.menu-bar .menu .label {
+    -fx-font-family: 'Inter';
+    -fx-font-size: 13px;
+    -fx-text-fill: #1a1c1c;
+}
+.menu-bar .menu:hover > .menu-item,
+.menu-bar .menu:showing > .label {
+    -fx-background-color: #e2e2e2;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+.primary-button {
+    -fx-background-color: #005FB8;
+    -fx-text-fill: #ffffff;
+    -fx-font-family: 'Inter SemiBold';
+    -fx-font-size: 13px;
+    -fx-padding: 6 18 6 18;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 6;
+}
+.primary-button:hover   { -fx-background-color: #00488d; }
+.primary-button:pressed { -fx-background-color: #003870; }
+.primary-button:disabled {
+    -fx-background-color: #c2c6d4;
+    -fx-text-fill: #727783;
+}
+.run-icon {
+    -fx-font-family: 'Material Icons';
+    -fx-font-size: 16px;
+    -fx-text-fill: #ffffff;
+}
+
+.secondary-button {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #c2c6d4;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-text-fill: #1a1c1c;
+    -fx-font-family: 'Inter';
+    -fx-font-size: 13px;
+    -fx-padding: 5 14 5 14;
+    -fx-cursor: hand;
+}
+.secondary-button:hover   { -fx-background-color: #f3f3f3; }
+.secondary-button:pressed { -fx-background-color: #e8e8e8; }
+.secondary-button:disabled { -fx-text-fill: #727783; -fx-border-color: #e2e2e2; }
+
+.ghost-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #424752;
+    -fx-font-family: 'Inter';
+    -fx-font-size: 13px;
+    -fx-padding: 4 8 4 8;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+.ghost-button:hover { -fx-background-color: #eeeeee; }
+
+/* ── Sidebar ───────────────────────────────────────────────────────────── */
+.sidebar {
+    -fx-background-color: #f3f3f3;
+    -fx-border-color: transparent #c2c6d4 transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-min-width: 220px;
+    -fx-pref-width: 260px;
+}
+.sidebar-tab-bar {
+    -fx-background-color: #f3f3f3;
+    -fx-border-color: transparent transparent #c2c6d4 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-spacing: 0;
+    -fx-padding: 0;
+}
+.sidebar-tab {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #424752;
+    -fx-font-family: 'Inter';
+    -fx-font-size: 11px;
+    -fx-padding: 8 6 8 6;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 4;
+    -fx-content-display: TOP;
+    -fx-alignment: CENTER;
+    -fx-background-radius: 0;
+}
+.sidebar-tab:hover { -fx-background-color: #e8e8e8; }
+.sidebar-tab-active {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #005FB8 transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-text-fill: #005FB8;
+}
+.sidebar-tab-icon {
+    -fx-font-family: 'Material Icons';
+    -fx-font-size: 18px;
+    -fx-text-fill: inherit;
+}
+
+/* Section header */
+.sidebar-section-header {
+    -fx-font-family: 'Inter SemiBold';
+    -fx-font-size: 11px;
+    -fx-text-fill: #727783;
+    -fx-padding: 10 12 4 12;
+}
+
+/* Tree view */
+.project-tree {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 4 0 4 0;
+}
+.project-tree .tree-cell {
+    -fx-background-color: transparent;
+    -fx-font-family: 'Inter';
+    -fx-font-size: 13px;
+    -fx-text-fill: #1a1c1c;
+    -fx-padding: 5 8 5 8;
+    -fx-min-height: 30px;
+    -fx-graphic-text-gap: 6;
+}
+.project-tree .tree-cell:hover {
+    -fx-background-color: #e8e8e8;
+    -fx-background-radius: 4;
+}
+.project-tree .tree-cell:selected {
+    -fx-background-color: #dce8f8;
+    -fx-text-fill: #00488d;
+    -fx-border-color: transparent transparent transparent #005FB8;
+    -fx-border-width: 0 0 0 2;
+}
+.tree-icon {
+    -fx-font-family: 'Material Icons';
+    -fx-font-size: 16px;
+    -fx-text-fill: #727783;
+}
+.tree-icon-active { -fx-text-fill: #005FB8; }
+
+/* ── Main content ──────────────────────────────────────────────────────── */
+.main-content   { -fx-background-color: #f9f9f9; }
+
+.placeholder-pane    { -fx-padding: 60; -fx-alignment: CENTER; -fx-spacing: 12; }
+.placeholder-icon    { -fx-font-family: 'Material Icons'; -fx-font-size: 56px; -fx-text-fill: #c2c6d4; }
+.placeholder-title   { -fx-font-family: 'Inter SemiBold'; -fx-font-size: 18px; -fx-text-fill: #424752; }
+.placeholder-subtitle {
+    -fx-font-family: 'Inter';
+    -fx-font-size: 13px;
+    -fx-text-fill: #727783;
+    -fx-max-width: 340;
+    -fx-alignment: CENTER;
+    -fx-text-alignment: CENTER;
+    -fx-wrap-text: true;
+}
+
+/* Project detail */
+.project-detail-scroll  { -fx-background-color: #f9f9f9; -fx-border-color: transparent; }
+.project-detail-pane    { -fx-background-color: #f9f9f9; }
+.project-title          { -fx-font-family: 'Inter SemiBold'; -fx-font-size: 18px; -fx-text-fill: #1a1c1c; }
+.env-badge {
+    -fx-background-color: #e8e8e8;
+    -fx-text-fill: #424752;
+    -fx-font-family: 'Inter Medium';
+    -fx-font-size: 11px;
+    -fx-padding: 3 9 3 9;
+    -fx-background-radius: 12;
+}
+.section-label  { -fx-font-family: 'Inter SemiBold'; -fx-font-size: 14px; -fx-text-fill: #1a1c1c; }
+.field-label {
+    -fx-font-family: 'Inter SemiBold';
+    -fx-font-size: 11px;
+    -fx-text-fill: #727783;
+}
+
+/* Divider */
+.section-divider { -fx-background-color: #c2c6d4; -fx-pref-height: 1; -fx-max-height: 1; }
+
+/* Text fields */
+.text-field {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #c2c6d4;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 6 10 6 10;
+    -fx-font-family: 'Inter';
+    -fx-font-size: 13px;
+    -fx-text-fill: #1a1c1c;
+    -fx-prompt-text-fill: #a0a4ae;
+}
+.text-field:focused {
+    -fx-border-color: #005FB8;
+    -fx-effect: dropshadow(gaussian, rgba(0,95,184,0.18), 4, 0, 0, 1);
+}
+
+/* ── Data table ─────────────────────────────────────────────────────────── */
+.data-table {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #c2c6d4;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+.data-table .column-header-background { -fx-background-color: #f3f3f3; }
+.data-table .column-header,
+.data-table .filler {
+    -fx-background-color: #f3f3f3;
+    -fx-border-color: transparent transparent #c2c6d4 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-size: 32px;
+}
+.data-table .column-header .label {
+    -fx-font-family: 'Inter SemiBold';
+    -fx-font-size: 12px;
+    -fx-text-fill: #1a1c1c;
+}
+.data-table .table-row-cell {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #f0f0f0 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-cell-size: 34px;
+}
+.data-table .table-row-cell:odd  { -fx-background-color: #fafafa; }
+.data-table .table-row-cell:hover { -fx-background-color: #f0f5fc; }
+.data-table .table-row-cell:selected { -fx-background-color: #dce8f8; }
+.data-table .table-cell {
+    -fx-padding: 5 12 5 12;
+    -fx-font-family: 'Inter';
+    -fx-font-size: 13px;
+    -fx-text-fill: #1a1c1c;
+    -fx-border-color: transparent;
+}
+
+/* ── Results view ───────────────────────────────────────────────────────── */
+.results-pane  { -fx-background-color: #f9f9f9; }
+
+.summary-bar {
+    -fx-background-color: #f3f3f3;
+    -fx-border-color: transparent transparent #c2c6d4 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 12 16 12 16;
+    -fx-spacing: 10;
+    -fx-alignment: CENTER_LEFT;
+}
+.summary-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #c2c6d4;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 8 16 8 16;
+    -fx-alignment: CENTER;
+    -fx-spacing: 2;
+    -fx-min-width: 90;
+}
+.summary-pass  { -fx-border-color: #1a7a34; }
+.summary-fail  { -fx-border-color: #ba1a1a; }
+.summary-error { -fx-border-color: #c07a00; }
+.summary-count {
+    -fx-font-family: 'Inter SemiBold';
+    -fx-font-size: 24px;
+    -fx-text-fill: #1a1c1c;
+}
+.summary-label {
+    -fx-font-family: 'Inter';
+    -fx-font-size: 11px;
+    -fx-text-fill: #727783;
+}
+
+.results-table {
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+}
+
+/* Status colour cells */
+.cell-pass  { -fx-text-fill: #1a7a34; -fx-font-family: 'Inter SemiBold'; }
+.cell-fail  { -fx-text-fill: #ba1a1a; -fx-font-family: 'Inter SemiBold'; }
+.cell-error { -fx-text-fill: #c07a00; -fx-font-family: 'Inter SemiBold'; }
+
+/* Detail panel */
+.detail-panel { -fx-background-color: #f3f3f3; }
+.detail-panel-header {
+    -fx-background-color: #eeeeee;
+    -fx-border-color: #c2c6d4 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 6 12 6 12;
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 8;
+}
+.detail-panel-title   { -fx-font-family: 'Inter SemiBold'; -fx-font-size: 12px; -fx-text-fill: #424752; }
+.detail-student-label { -fx-font-family: 'Inter SemiBold'; -fx-font-size: 12px; -fx-text-fill: #005FB8; }
+
+/* ── Log / terminal area ────────────────────────────────────────────────── */
+.log-area {
+    -fx-control-inner-background: #1a1c1c;
+    -fx-text-fill: #d4d8e0;
+    -fx-font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    -fx-font-size: 12px;
+    -fx-highlight-fill: #005FB8;
+    -fx-border-color: transparent;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-padding: 8;
+}
+.log-area .content { -fx-background-color: #1a1c1c; }
+
+/* ── Progress dialog ────────────────────────────────────────────────────── */
+.progress-dialog-root {
+    -fx-background-color: #ffffff;
+    -fx-font-family: 'Inter';
+}
+.progress-dialog-icon {
+    -fx-font-family: 'Material Icons';
+    -fx-font-size: 22px;
+    -fx-text-fill: #005FB8;
+}
+.progress-dialog-title {
+    -fx-font-family: 'Inter SemiBold';
+    -fx-font-size: 16px;
+    -fx-text-fill: #1a1c1c;
+}
+.progress-status-text  { -fx-font-family: 'Inter'; -fx-font-size: 13px; -fx-text-fill: #424752; }
+.progress-count-label  { -fx-font-family: 'Inter'; -fx-font-size: 12px; -fx-text-fill: #727783; }
+
+.progress-bar-main {
+    -fx-pref-height: 8px;
+    -fx-background-color: #e2e2e2;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+}
+.progress-bar-main .bar {
+    -fx-background-color: #005FB8;
+    -fx-background-radius: 4;
+    -fx-padding: 4px;
+}
+.progress-bar-main .track {
+    -fx-background-color: #e2e2e2;
+    -fx-background-radius: 4;
+}
+
+/* ── Status bar ─────────────────────────────────────────────────────────── */
+.status-bar {
+    -fx-background-color: #eeeeee;
+    -fx-border-color: #c2c6d4 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-min-height: 24px;
+    -fx-max-height: 24px;
+    -fx-padding: 0 12 0 0;
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 4;
+}
+.status-icon {
+    -fx-font-family: 'Material Icons';
+    -fx-font-size: 14px;
+}
+.status-text { -fx-font-family: 'Inter'; -fx-font-size: 12px; -fx-text-fill: #424752; }
+.status-ok   { -fx-text-fill: #1a7a34; }
+.status-sep  { -fx-text-fill: #c2c6d4; -fx-font-size: 14px; }

@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.iae.ui.MainWindowController"
+            stylesheets="@../css/styles.css"
+            styleClass="root-pane">
+
+    <!-- ═══════════════════════════════════════════
+         TOP  — App header + Menu bar
+         ═══════════════════════════════════════════ -->
+    <top>
+        <VBox>
+
+            <!-- App header row -->
+            <HBox styleClass="app-header">
+                <!-- IAE badge -->
+                <Label text="IAE" styleClass="app-badge"/>
+
+                <!-- App title -->
+                <Label text="Integrated Assignment Environment" styleClass="app-title"/>
+
+                <Pane HBox.hgrow="ALWAYS"/>
+
+                <!-- Toolbar icon buttons -->
+                <!-- folder_open = E2C8 -->
+                <Button styleClass="toolbar-icon-btn" onAction="#handleOpenProject"
+                        contentDisplay="GRAPHIC_ONLY">
+                    <graphic><Label text="&#xE2C8;" styleClass="toolbar-icon"/></graphic>
+                    <tooltip><Tooltip text="Open Project"/></tooltip>
+                </Button>
+
+                <!-- add = E145 -->
+                <Button styleClass="toolbar-icon-btn" onAction="#handleNewProject"
+                        contentDisplay="GRAPHIC_ONLY">
+                    <graphic><Label text="&#xE145;" styleClass="toolbar-icon"/></graphic>
+                    <tooltip><Tooltip text="New Project"/></tooltip>
+                </Button>
+
+                <Separator orientation="VERTICAL" styleClass="toolbar-separator"/>
+
+                <!-- Run button (play_arrow = E037) -->
+                <Button fx:id="runBtn" styleClass="primary-button"
+                        onAction="#handleRun" disable="true"
+                        contentDisplay="LEFT">
+                    <graphic><Label text="&#xE037;" styleClass="run-icon"/></graphic>
+                    <HBox.margin><Insets left="8" right="8"/></HBox.margin>
+                    Run
+                </Button>
+            </HBox>
+
+            <!-- Menu bar -->
+            <MenuBar styleClass="menu-bar">
+                <Menu text="File">
+                    <MenuItem text="New Project"   onAction="#handleNewProject"/>
+                    <MenuItem text="Open Project"  onAction="#handleOpenProject"/>
+                    <MenuItem text="Close Project" onAction="#handleCloseProject"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Exit"          onAction="#handleExit"/>
+                </Menu>
+                <Menu text="Configurations">
+                    <MenuItem text="New Configuration"  onAction="#handleNewConfiguration"/>
+                    <MenuItem text="Edit Configuration" onAction="#handleEditConfiguration"/>
+                </Menu>
+                <Menu text="Help">
+                    <MenuItem text="Help"  onAction="#handleHelp"/>
+                    <MenuItem text="About" onAction="#handleAbout"/>
+                </Menu>
+            </MenuBar>
+
+        </VBox>
+    </top>
+
+    <!-- ═══════════════════════════════════════════
+         LEFT  — Sidebar
+         ═══════════════════════════════════════════ -->
+    <left>
+        <VBox styleClass="sidebar">
+
+            <!-- Sidebar navigation tabs -->
+            <!-- account_tree=E97A  assignment=E85D  assessment=E85C  settings=E8B8 -->
+            <HBox styleClass="sidebar-tab-bar">
+                <Button styleClass="sidebar-tab sidebar-tab-active"
+                        onAction="#showProjectsView"
+                        HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                    <graphic><VBox alignment="CENTER" spacing="2">
+                        <Label text="&#xE97A;" styleClass="sidebar-tab-icon"/>
+                        <Label text="Projects" styleClass="sidebar-tab"/>
+                    </VBox></graphic>
+                    <contentDisplay>GRAPHIC_ONLY</contentDisplay>
+                </Button>
+                <Button styleClass="sidebar-tab" onAction="#showSubmissionsView"
+                        HBox.hgrow="ALWAYS" maxWidth="Infinity" disable="true">
+                    <graphic><VBox alignment="CENTER" spacing="2">
+                        <Label text="&#xE85D;" styleClass="sidebar-tab-icon"/>
+                        <Label text="Submissions" styleClass="sidebar-tab"/>
+                    </VBox></graphic>
+                    <contentDisplay>GRAPHIC_ONLY</contentDisplay>
+                </Button>
+                <Button styleClass="sidebar-tab" onAction="#showAnalyticsView"
+                        HBox.hgrow="ALWAYS" maxWidth="Infinity" disable="true">
+                    <graphic><VBox alignment="CENTER" spacing="2">
+                        <Label text="&#xE85C;" styleClass="sidebar-tab-icon"/>
+                        <Label text="Analytics" styleClass="sidebar-tab"/>
+                    </VBox></graphic>
+                    <contentDisplay>GRAPHIC_ONLY</contentDisplay>
+                </Button>
+                <Button styleClass="sidebar-tab"
+                        HBox.hgrow="ALWAYS" maxWidth="Infinity" disable="true">
+                    <graphic><VBox alignment="CENTER" spacing="2">
+                        <Label text="&#xE8B8;" styleClass="sidebar-tab-icon"/>
+                        <Label text="Settings" styleClass="sidebar-tab"/>
+                    </VBox></graphic>
+                    <contentDisplay>GRAPHIC_ONLY</contentDisplay>
+                </Button>
+            </HBox>
+
+            <Label text="PROJECTS" styleClass="sidebar-section-header"/>
+
+            <!-- Project tree view -->
+            <TreeView fx:id="projectTreeView" styleClass="project-tree"
+                      VBox.vgrow="ALWAYS"/>
+
+        </VBox>
+    </left>
+
+    <!-- ═══════════════════════════════════════════
+         CENTER  — Main content area
+         ═══════════════════════════════════════════ -->
+    <center>
+        <StackPane fx:id="mainContentArea" styleClass="main-content">
+
+            <!-- No-project placeholder -->
+            <!-- folder_open = E2C8 -->
+            <VBox fx:id="noProjectPane" styleClass="placeholder-pane" alignment="CENTER" spacing="12">
+                <Label text="&#xE2C8;" styleClass="placeholder-icon"/>
+                <Label text="No Project Selected" styleClass="placeholder-title"/>
+                <Label text="Use File → New Project or File → Open Project to get started."
+                       styleClass="placeholder-subtitle"/>
+                <HBox alignment="CENTER" spacing="8">
+                    <padding><Insets top="8"/></padding>
+                    <Button text="New Project"  styleClass="secondary-button" onAction="#handleNewProject"/>
+                    <Button text="Open Project" styleClass="primary-button"   onAction="#handleOpenProject"/>
+                </HBox>
+            </VBox>
+
+            <!-- Project detail pane -->
+            <ScrollPane fx:id="projectDetailScroll" styleClass="project-detail-scroll"
+                        fitToWidth="true" visible="false" managed="false">
+                <VBox styleClass="project-detail-pane" spacing="20">
+                    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+
+                    <!-- Project name + config badge + Run -->
+                    <HBox alignment="CENTER_LEFT" spacing="12">
+                        <Label fx:id="projectNameLabel" text="Project Name"
+                               styleClass="project-title"/>
+                        <Label fx:id="configBadge" text="Java 17" styleClass="env-badge"/>
+                    </HBox>
+
+                    <Pane styleClass="section-divider" maxHeight="1"/>
+
+                    <!-- Submissions directory -->
+                    <VBox spacing="6">
+                        <Label text="SUBMISSIONS DIRECTORY" styleClass="field-label"/>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <!-- folder = E2C7 -->
+                            <Button styleClass="toolbar-icon-btn" onAction="#handleBrowseSubmissions"
+                                    contentDisplay="GRAPHIC_ONLY">
+                                <graphic><Label text="&#xE2C7;" styleClass="toolbar-icon"/></graphic>
+                                <tooltip><Tooltip text="Browse…"/></tooltip>
+                            </Button>
+                            <TextField fx:id="submissionsDirField" styleClass="text-field"
+                                       promptText="Click folder icon to select submissions directory"
+                                       HBox.hgrow="ALWAYS" editable="false"/>
+                        </HBox>
+                    </VBox>
+
+                    <!-- Test cases section -->
+                    <VBox spacing="8">
+                        <HBox alignment="CENTER_LEFT" spacing="8">
+                            <Label text="TEST CASES" styleClass="field-label"/>
+                            <Pane HBox.hgrow="ALWAYS"/>
+                            <!-- add = E145 -->
+                            <Button styleClass="secondary-button" onAction="#handleAddTestCase">
+                                <graphic><Label text="&#xE145;" styleClass="toolbar-icon"
+                                               style="-fx-font-size:14px; -fx-text-fill:#424752;"/></graphic>
+                                Add Test Case
+                            </Button>
+                        </HBox>
+                        <TableView fx:id="testCasesTable" styleClass="data-table"
+                                   prefHeight="200" minHeight="100">
+                            <columns>
+                                <TableColumn fx:id="tcNumCol"    text="#"
+                                             prefWidth="40" minWidth="40" resizable="false"/>
+                                <TableColumn fx:id="tcInputCol"  text="Input Arguments" prefWidth="240"/>
+                                <TableColumn fx:id="tcOutputCol" text="Expected Output File" prefWidth="320"/>
+                                <TableColumn fx:id="tcActionCol" text="" prefWidth="50"
+                                             minWidth="50" resizable="false"/>
+                            </columns>
+                            <placeholder>
+                                <Label text="No test cases yet. Click Add Test Case to begin."
+                                       style="-fx-text-fill:#727783; -fx-font-size:12px;"/>
+                            </placeholder>
+                        </TableView>
+                    </VBox>
+
+                    <!-- Run section -->
+                    <HBox alignment="CENTER_RIGHT">
+                        <Button fx:id="runBtnInDetail" styleClass="primary-button"
+                                onAction="#handleRun" contentDisplay="LEFT">
+                            <graphic><Label text="&#xE037;" styleClass="run-icon"/></graphic>
+                            Run Evaluation
+                        </Button>
+                    </HBox>
+
+                </VBox>
+            </ScrollPane>
+
+            <!-- Results pane injected at runtime -->
+
+        </StackPane>
+    </center>
+
+    <!-- ═══════════════════════════════════════════
+         BOTTOM  — Status bar
+         ═══════════════════════════════════════════ -->
+    <bottom>
+        <!-- check_circle=E86C  sync=E627  dns=E875 -->
+        <HBox styleClass="status-bar" spacing="4" alignment="CENTER_LEFT">
+            <padding><Insets left="12"/></padding>
+            <Label text="&#xE86C;" styleClass="status-icon status-ok"/>
+            <Label fx:id="statusLabel" text="System Ready" styleClass="status-text"/>
+            <Label text="  |  " styleClass="status-sep"/>
+            <Label text="&#xE627;" styleClass="status-icon" style="-fx-text-fill:#727783;"/>
+            <Label text="Background Tasks" styleClass="status-text"/>
+            <Pane HBox.hgrow="ALWAYS"/>
+            <Label text="&#xE875;" styleClass="status-icon" style="-fx-text-fill:#727783;"/>
+            <Label fx:id="envStatusLabel" text="Environment: Java 17" styleClass="status-text"/>
+            <padding><Insets right="12"/></padding>
+        </HBox>
+    </bottom>
+
+</BorderPane>

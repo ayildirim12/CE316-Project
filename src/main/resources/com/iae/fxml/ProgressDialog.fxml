@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.iae.ui.ProgressDialog"
+      styleClass="progress-dialog-root"
+      spacing="14" prefWidth="560" minWidth="460">
+
+    <padding><Insets top="24" right="24" bottom="20" left="24"/></padding>
+
+    <!-- Title row  sync=E627 -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Label text="&#xE627;" styleClass="progress-dialog-icon"/>
+        <Label text="Processing Submissions" styleClass="progress-dialog-title"/>
+    </HBox>
+
+    <!-- Status text -->
+    <Label fx:id="statusLabel" text="Starting…"
+           styleClass="progress-status-text" wrapText="true"/>
+
+    <!-- Progress bar -->
+    <ProgressBar fx:id="progressBar" progress="0"
+                 styleClass="progress-bar-main" maxWidth="Infinity"/>
+
+    <HBox alignment="CENTER_RIGHT">
+        <Label fx:id="progressCountLabel" text="0 / 0" styleClass="progress-count-label"/>
+    </HBox>
+
+    <!-- Execution log -->
+    <Label text="EXECUTION LOG" styleClass="field-label"/>
+    <TextArea fx:id="logArea" editable="false" styleClass="log-area"
+              prefHeight="240" minHeight="160"/>
+
+    <!-- Cancel button -->
+    <HBox alignment="CENTER_RIGHT">
+        <Button fx:id="cancelBtn" text="Cancel" styleClass="secondary-button"
+                onAction="#handleCancel"/>
+    </HBox>
+
+</VBox>
