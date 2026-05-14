@@ -273,3 +273,287 @@ needsCompilation        │         expectedOutputFilePath
 `Configuration` and `Project` are independent root objects managed by `ConfigurationManager` and `ProjectManager` respectively. A `Project` references its `Configuration` by the ID stored in `ConfigurationManager`; the link is resolved at pipeline start time by the UI layer.
 
 ---
+
+## 3. Structural Design — Logic Layer
+
+The logic layer (`com.iae.logic`) contains all processing, persistence, and coordination classes. It depends on the model layer but has no dependency on the UI layer. The layer is designed around three patterns: **Singleton** for the manager classes, **Strategy** for the pluggable pipeline components, and **Observer/Callback** for progress reporting.
+
+---
+
+### 3.1 Component Overview
+
+| Component | Kind | Responsibility |
+|---|---|---|
+| `SubmissionSource` | Interface (Strategy) | Load student submissions from a directory |
+| `Compiler` | Interface (Strategy) | Compile a student submission |
+| `Executor` | Interface (Strategy) | Run a compiled/interpreted submission against one test case |
+| `ProgressListener` | Interface (Observer) | Receive real-time progress events from the pipeline |
+| `ZipExtractor` | Utility class | Extract a single ZIP archive safely to a target directory |
+| `OutputComparator` | Extensible class | Compare actual program output against expected output file |
+| `CodeRunner` | Concrete `Executor` | Process-based execution with timeout enforcement |
+| `EvaluationEngine` | Orchestrator | Drive the full compile → run → compare pipeline for a project |
+| `PipelineExecutor` | Async facade | Run `EvaluationEngine` on a background thread with cancel support |
+| `DatabaseManager` | Singleton (persistence) | Persist and retrieve `EvaluationResult` rows via SQLite |
+| `ConfigurationManager` | Singleton (store) | In-memory CRUD for `Configuration` objects |
+| `ProjectManager` | Singleton (store) | In-memory CRUD for `Project` objects |
+| `ReportManager` | Service | Compute aggregate statistics over a project's evaluation results |
+
+---
+
+### 3.2 Strategy Interfaces
+
+#### SubmissionSource
+
+```
+loadSubmissions(File submissionsDirectory) → List<Submission>
+```
+
+Abstracts over how student submissions are discovered. The production path uses ZIP archives extracted by `ZipExtractor`; test code supplies an in-memory fake. Implementing this interface decouples `EvaluationEngine` from the file system layout.
+
+#### Compiler
+
+```
+compile(Submission, Configuration) → CompileResult
+```
+
+Abstracts over the compilation tool. Returns a `CompileResult` whether compilation succeeds or fails; it never throws — errors are encoded in the result object. Only called when `Configuration.needsCompilation` is `true`.
+
+#### Executor
+
+```
+execute(Submission, Configuration, TestCase) → ExecutionResult
+```
+
+Abstracts over program execution. The concrete implementation (`CodeRunner`) spawns an OS process; tests supply an in-memory fake. Returns an `ExecutionResult` encoding exit code, captured output, duration, and timeout status.
+
+#### ProgressListener
+
+```
+onProgress(int current, int total, String studentId)
+onComplete()
+onError(String message)   ← default no-op
+```
+
+Observer callback injected into `EvaluationEngine`. The UI layer passes `ProgressDialog` (which implements this interface) to receive live updates on the JavaFX thread via `Platform.runLater`. `onError` has a default no-op implementation so simple callers do not need to handle it.
+
+---
+
+### 3.3 ZipExtractor
+
+Utility class with a single public method. Not a Strategy — used directly by whatever implements `SubmissionSource`.
+
+```
+extract(File zipFile, File targetDir) → File
+```
+
+Creates `targetDir` if it does not exist, then streams the ZIP entries into it. Returns `targetDir` for chaining. Protects against Zip Slip by canonicalising each entry path and verifying it remains inside `targetDir` before writing.
+
+---
+
+### 3.4 OutputComparator
+
+Compares a string of actual program output against the content of an expected-output file.
+
+```
+compare(String actualOutput, String expectedOutputFilePath) → ComparisonResult
+```
+
+**Normalisation step:** both strings are normalised before comparison — Windows line endings (`\r\n`) are converted to `\n` and trailing whitespace is stripped. This prevents spurious mismatches caused by platform differences.
+
+**Diff generation:** on mismatch, a line-by-line diff is built and stored in `ComparisonResult.diffText`. Lines present in only one side are reported as `<missing>`.
+
+The class is non-final and its `compare` method is public (not static), which allows tests to subclass it and override behaviour without a separate interface. The test suite uses `FakeOutputComparator extends OutputComparator` for this purpose.
+
+---
+
+### 3.5 CodeRunner
+
+Concrete implementation of `Executor`. Spawns an OS process for each test-case execution.
+
+**Constructor**
+
+| Signature | Description |
+|---|---|
+| `CodeRunner()` | Uses the default timeout of 10 000 ms |
+| `CodeRunner(int timeoutMs)` | Uses the supplied timeout |
+
+**Execution flow**
+
+1. Build the command list from `Configuration.runCommand`, `Configuration.runArgs`, and `TestCase.inputArgs` (each split on whitespace).
+2. Create a `ProcessBuilder` rooted at `Submission.extractedDirectory`.
+3. Start the process and drain stdout/stderr on two separate threads to prevent pipe-buffer deadlock.
+4. Wait for the process with `Process.waitFor(timeoutMs, MILLISECONDS)`.
+5. On timeout: forcibly destroy the process, return a timed-out `ExecutionResult`.
+6. On success: collect exit code and captured streams into `ProcessOutput` and `ExecutionResult`.
+
+---
+
+### 3.6 EvaluationEngine
+
+The central orchestrator. Drives the compile → execute → compare pipeline for every submission in a project.
+
+**Constructor**
+
+```java
+EvaluationEngine(SubmissionSource, Compiler, Executor,
+                 OutputComparator, DatabaseManager,
+                 ProgressListener, int defaultTimeoutMs)
+```
+
+All dependencies are injected at construction time (Dependency Injection). `ProgressListener` may be `null`; all other parameters are required and validated with `Objects.requireNonNull`.
+
+**`runProject(Project, Configuration) → List<EvaluationResult>`**
+
+| Step | Detail |
+|---|---|
+| Load | Calls `SubmissionSource.loadSubmissions(submissionsDirectory)` |
+| For each submission | Checks the `cancelled` flag; stops immediately if set |
+| Compile phase | If `needsCompilation`, calls `Compiler.compile`; on failure sets `COMPILE_ERROR` and skips execution |
+| Execute phase | For each `TestCase`, calls `Executor.execute`; on timeout sets `TIMEOUT` |
+| Compare phase | For each executed test case, calls `OutputComparator.compare`; on mismatch contributes `WRONG_OUTPUT` |
+| Status resolution | The worst-case `Status` across all test cases is assigned to the result (severity: `TIMEOUT > RUNTIME_ERROR > WRONG_OUTPUT > SUCCESS`) |
+| Persist | Calls `DatabaseManager.saveResult(result)` |
+| Report progress | Calls `ProgressListener.onProgress` and `onComplete` |
+
+**`requestCancel()`** sets a `volatile boolean cancelled` flag. The engine checks this flag before processing each student; the current student always completes before the batch stops.
+
+---
+
+### 3.7 PipelineExecutor
+
+Async facade over `EvaluationEngine`. Moves the blocking `runProject` call off the JavaFX Application Thread.
+
+**Constructor**
+
+```java
+PipelineExecutor(EvaluationEngine engine)
+```
+
+Creates a single-thread `ExecutorService` backed by a daemon thread named `pipeline-executor`.
+
+**Methods**
+
+| Method | Returns | Description |
+|---|---|---|
+| `submit(Project, Configuration)` | `Future<List<EvaluationResult>>` | Submits the pipeline run; throws `IllegalStateException` if already running |
+| `cancel()` | `void` | Calls `engine.requestCancel()` then `future.cancel(true)` |
+| `isRunning()` | `boolean` | `true` while the future is neither done nor cancelled |
+| `shutdown()` | `void` | Gracefully shuts down the thread pool |
+
+The `submit` method enforces single-run semantics: only one project can be evaluated at a time. The UI disables the Run button for the same reason; `PipelineExecutor` enforces it programmatically.
+
+---
+
+### 3.8 DatabaseManager
+
+Singleton that persists `EvaluationResult` records to a SQLite database file (`iae.db`) in the working directory.
+
+**Singleton access**
+
+```java
+DatabaseManager.getInstance()
+```
+
+Subclasses can override by providing a `protected` constructor; the test layer uses `FakeDatabase extends DatabaseManager` for in-memory fakes.
+
+**Schema**
+
+```sql
+CREATE TABLE IF NOT EXISTS results (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id  TEXT    NOT NULL,
+    status      TEXT    NOT NULL,
+    error_msg   TEXT,
+    duration_ms INTEGER
+)
+```
+
+The nested objects (`CompileResult`, `ExecutionResult` lists) are not persisted; only the flat summary fields are stored. This is sufficient for `ReportManager` statistics and the results view.
+
+**Methods**
+
+| Method | Description |
+|---|---|
+| `saveResult(EvaluationResult)` | INSERT; sets `result.id` from the generated key |
+| `getResultsForProject(int projectId)` | SELECT all rows; reconstructs flat `EvaluationResult` objects |
+
+Both methods are `synchronized` on the instance. The SQLite connection is lazy-initialised and re-opened if found closed.
+
+---
+
+### 3.9 ConfigurationManager
+
+Singleton managing `Configuration` objects in memory for the duration of the session.
+
+**Singleton access:** `ConfigurationManager.getInstance()`
+
+**Methods**
+
+| Method | Returns | Description |
+|---|---|---|
+| `save(Configuration)` | `Configuration` | Assigns a new `id` if `id == 0`, then stores; acts as both create and update |
+| `findById(int)` | `Optional<Configuration>` | Look up by primary key |
+| `findByName(String)` | `Optional<Configuration>` | Linear scan by name |
+| `findAll()` | `List<Configuration>` | Unmodifiable snapshot of all stored configurations |
+| `delete(int)` | `boolean` | Removes the entry; returns `false` if not found |
+
+IDs are assigned by an internal counter starting at 1. Insertion order is preserved via `LinkedHashMap`.
+
+---
+
+### 3.10 ProjectManager
+
+Singleton managing `Project` objects in memory for the duration of the session.
+
+**Singleton access:** `ProjectManager.getInstance()`
+
+**Methods**
+
+| Method | Returns | Description |
+|---|---|---|
+| `save(Project)` | `Project` | Assigns a new `id` if `id == 0`, then stores |
+| `createProject(Project)` | `Project` | Alias for `save`; matches the UI integration point |
+| `updateProject(Project)` | `void` | Replaces an existing entry; throws `IllegalArgumentException` if not found |
+| `findById(int)` | `Optional<Project>` | Look up by primary key |
+| `findByName(String)` | `Optional<Project>` | Linear scan by name |
+| `getAllProjects()` | `List<Project>` | Unmodifiable snapshot; matches the UI TODO integration point |
+| `delete(int)` | `boolean` | Removes the entry; returns `false` if not found |
+
+---
+
+### 3.11 ReportManager
+
+Stateless service that queries `DatabaseManager` and produces summary statistics.
+
+**Constructor:** `ReportManager(DatabaseManager databaseManager)`
+
+**Methods**
+
+| Method | Returns | Description |
+|---|---|---|
+| `getResultsForProject(int projectId)` | `List<EvaluationResult>` | Delegates directly to `DatabaseManager` |
+| `generateSummary(int projectId)` | `Summary` | Counts pass/fail/error and computes pass rate |
+
+**`Summary` record**
+
+```java
+record Summary(int total, int passCount, int failCount,
+               int errorCount, double passRate)
+```
+
+`passCount` counts `SUCCESS` results; `failCount` counts `WRONG_OUTPUT`; `errorCount` covers all remaining statuses (`COMPILE_ERROR`, `RUNTIME_ERROR`, `TIMEOUT`, `SOURCE_MISSING`, `ZIP_ERROR`).
+
+---
+
+### 3.12 Design Patterns Summary
+
+| Pattern | Applied in |
+|---|---|
+| **Singleton** | `DatabaseManager`, `ConfigurationManager`, `ProjectManager` |
+| **Strategy** | `SubmissionSource`, `Compiler`, `Executor` — swapped between production and test fakes without changing `EvaluationEngine` |
+| **Observer / Callback** | `ProgressListener` — UI components register for real-time pipeline events |
+| **Facade** | `PipelineExecutor` — hides thread management and `Future` wiring from the UI layer |
+| **Dependency Injection** | `EvaluationEngine` — all collaborators injected via constructor; enables isolated unit testing |
+| **Template Method** | `OutputComparator` — subclasses override `compare` in tests while reusing the normalisation logic |
+
+---
