@@ -75,7 +75,7 @@ public class ProjectDialogController {
         submissionsDirField.setText(nullSafe(project.getSubmissionsDirectory()));
 
         ConfigurationManager.getInstance()
-                .findById(project.getConfigurationId())
+                .findByName(project.getConfigurationId())
                 .ifPresent(configComboBox.getSelectionModel()::select);
     }
 
@@ -109,9 +109,9 @@ public class ProjectDialogController {
         project.setSubmissionsDirectory(submissionsDirField.getText().trim());
 
         Configuration selectedConfig = configComboBox.getValue();
-        if (selectedConfig != null) project.setConfigurationId(selectedConfig.getId());
+        if (selectedConfig != null) project.setConfigurationId(selectedConfig.getName());
 
-        ProjectManager.getInstance().save(project);
+        ProjectManager.getInstance().saveProject(project);
         result = project;
         stage.close();
     }

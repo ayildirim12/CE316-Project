@@ -1,5 +1,6 @@
 package com.iae.logic;
 
+import com.iae.model.Configuration;
 import com.iae.model.EvaluationResult;
 import com.iae.model.Project;
 import com.iae.model.Status;
@@ -92,6 +93,21 @@ public class DatabaseManager {
     private void initSchema(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
 
+            // CONFIGURATIONS
+            stmt.execute(
+                "CREATE TABLE IF NOT EXISTS CONFIGURATIONS (" +
+                "  id                INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "  name              TEXT    NOT NULL," +
+                "  language          TEXT," +
+                "  source_file       TEXT," +
+                "  needs_compilation INTEGER NOT NULL DEFAULT 0," +
+                "  compile_command   TEXT," +
+                "  compile_args      TEXT," +
+                "  run_command       TEXT," +
+                "  run_args          TEXT" +
+                ")"
+            );
+
             // PROJECTS
             stmt.execute(
                 "CREATE TABLE IF NOT EXISTS PROJECTS (" +
@@ -132,6 +148,128 @@ public class DatabaseManager {
                 ")"
             );
         }
+    }
+
+    // ── Configuration CRUD ────────────────────────────────────────────────────
+
+    /**
+     * Inserts a new configuration (if {@code config.getId() == 0}) or updates
+     * the existing row. Sets the generated id on the config object after insert.
+     *
+     * @throws SQLException on any DB error
+     */
+    public synchronized void saveConfiguration(Configuration config) throws SQLException {
+        connect();
+        if (config.getId() == 0) {
+            insertConfiguration(config);
+        } else {
+            updateConfiguration(config);
+        }
+    }
+
+    private void insertConfiguration(Configuration config) throws SQLException {
+        String sql =
+            "INSERT INTO CONFIGURATIONS(name, language, source_file, needs_compilation," +
+            " compile_command, compile_args, run_command, run_args)" +
+            " VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+        connection.setAutoCommit(false);
+        try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            bindConfigFields(ps, config);
+            ps.executeUpdate();
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                if (keys.next()) config.setId(keys.getInt(1));
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            connection.rollback();
+            throw e;
+        } finally {
+            connection.setAutoCommit(true);
+        }
+    }
+
+    private void updateConfiguration(Configuration config) throws SQLException {
+        String sql =
+            "UPDATE CONFIGURATIONS SET name=?, language=?, source_file=?," +
+            " needs_compilation=?, compile_command=?, compile_args=?," +
+            " run_command=?, run_args=? WHERE id=?";
+        connection.setAutoCommit(false);
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            bindConfigFields(ps, config);
+            ps.setInt(9, config.getId());
+            ps.executeUpdate();
+            connection.commit();
+        } catch (SQLException e) {
+            connection.rollback();
+            throw e;
+        } finally {
+            connection.setAutoCommit(true);
+        }
+    }
+
+    /** Binds all editable fields of a {@link Configuration} onto a PreparedStatement (params 1-8). */
+    private static void bindConfigFields(PreparedStatement ps, Configuration c) throws SQLException {
+        ps.setString(1, c.getName());
+        ps.setString(2, c.getLanguage());
+        ps.setString(3, c.getSourceFile());
+        ps.setInt(4, c.isNeedsCompilation() ? 1 : 0);
+        ps.setString(5, c.getCompileCommand());
+        ps.setString(6, c.getCompileArgs());
+        ps.setString(7, c.getRunCommand());
+        ps.setString(8, c.getRunArgs());
+    }
+
+    /**
+     * Returns all persisted configurations, ordered by id.
+     *
+     * @throws SQLException on any DB error
+     */
+    public synchronized List<Configuration> getAllConfigurations() throws SQLException {
+        connect();
+        List<Configuration> list = new ArrayList<>();
+        String sql = "SELECT id, name, language, source_file, needs_compilation," +
+                     " compile_command, compile_args, run_command, run_args" +
+                     " FROM CONFIGURATIONS ORDER BY id";
+        try (PreparedStatement ps = connection.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) list.add(mapConfiguration(rs));
+        }
+        return list;
+    }
+
+    /**
+     * Deletes the configuration row with the given id.
+     *
+     * @throws SQLException on any DB error
+     */
+    public synchronized void deleteConfiguration(int id) throws SQLException {
+        connect();
+        connection.setAutoCommit(false);
+        try (PreparedStatement ps = connection.prepareStatement(
+                "DELETE FROM CONFIGURATIONS WHERE id=?")) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+            connection.commit();
+        } catch (SQLException e) {
+            connection.rollback();
+            throw e;
+        } finally {
+            connection.setAutoCommit(true);
+        }
+    }
+
+    private Configuration mapConfiguration(ResultSet rs) throws SQLException {
+        Configuration c = new Configuration();
+        c.setId(rs.getInt("id"));
+        c.setName(rs.getString("name"));
+        c.setLanguage(rs.getString("language"));
+        c.setSourceFile(rs.getString("source_file"));
+        c.setNeedsCompilation(rs.getInt("needs_compilation") == 1);
+        c.setCompileCommand(rs.getString("compile_command"));
+        c.setCompileArgs(rs.getString("compile_args"));
+        c.setRunCommand(rs.getString("run_command"));
+        c.setRunArgs(rs.getString("run_args"));
+        return c;
     }
 
     // ── Project CRUD ──────────────────────────────────────────────────────────
