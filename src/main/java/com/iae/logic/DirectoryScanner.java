@@ -21,7 +21,7 @@ public class DirectoryScanner implements SubmissionSource {
         if (subdirs == null) return submissions;
 
         for (File dir : subdirs) {
-            Submission s = new Submission(dir.getName(), project, dir);
+            Submission s = new Submission(dir.getName(), project, dir, true);
             // dir.getName() is the student ID (e.g. "20210001")
             submissions.add(s);
         }
