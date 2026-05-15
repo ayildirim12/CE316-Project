@@ -11,10 +11,19 @@ public class Submission {
     private File extractedDirectory;
     private final List<File> sourceFiles = new ArrayList<>();
 
+   // Used by ZipExtractor (final submission)
     public Submission(String studentId, Project project, File zipFile) {
         this.studentId = studentId;
         this.project   = project;
         this.zipFile   = zipFile;
+    }
+
+    // Used by DirectoryScanner (prototype)
+    public Submission(String studentId, Project project, File extractedDirectory, boolean isExtracted) {
+        this.studentId = studentId;
+        this.project   = project;
+        this.zipFile   = null;
+        this.extractedDirectory = extractedDirectory;
     }
 
     public String getStudentId()             { return studentId; }
