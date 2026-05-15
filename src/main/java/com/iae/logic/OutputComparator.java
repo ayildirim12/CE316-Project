@@ -5,6 +5,7 @@ import com.iae.model.ComparisonResult;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Collectors;
 
 public class OutputComparator {
 
@@ -26,9 +27,17 @@ public class OutputComparator {
         return new ComparisonResult(false, buildDiff(normalizedExpected, normalizedActual));
     }
 
+    // private String normalize(String text) {
+    //     if (text == null) return "";
+    //     return text.replace("\r\n", "\n").stripTrailing();
+    // }
+
     private String normalize(String text) {
         if (text == null) return "";
-        return text.replace("\r\n", "\n").stripTrailing();
+        return text.lines()                     // split by any line ending
+                .map(String::strip)             // .map(s -> s.strip())    // trim leading AND trailing spaces per line
+                .collect(Collectors.joining("\n"))
+                .stripTrailing();
     }
 
     private String buildDiff(String expected, String actual) {
