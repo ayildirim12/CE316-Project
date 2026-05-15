@@ -1,6 +1,7 @@
 package com.iae.logic;
 
 import com.iae.model.Submission;
+import com.iae.model.Project;
 
 import java.io.File;
 import java.util.List;
@@ -9,5 +10,5 @@ import java.util.List;
 
 public interface SubmissionSource {
 
-    List<Submission> loadSubmissions(File submissionsDirectory);
+    List<Submission> loadSubmissions(File submissionsDirectory, Project project);
 }

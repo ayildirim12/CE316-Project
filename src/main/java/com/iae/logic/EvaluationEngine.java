@@ -48,7 +48,7 @@ public class EvaluationEngine {
         File submissionsDir = new File(project.getSubmissionsDirectory());
         List<Submission> submissions;
         try {
-            submissions = submissionSource.loadSubmissions(submissionsDir);
+            submissions = submissionSource.loadSubmissions(submissionsDir, project);
         } catch (Exception e) {
             if (progressListener != null)
                 progressListener.onError("Cannot load submissions: " + e.getMessage());
