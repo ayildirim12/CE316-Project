@@ -7,6 +7,7 @@ public class Project {
     private int    id;
     private String name;
     private String submissionsDirectory;
+    private int    configurationId;
     private final List<TestCase>        testCases   = new ArrayList<>();
     private final List<Submission>      submissions = new ArrayList<>();
     private final List<EvaluationResult> results    = new ArrayList<>();
@@ -21,6 +22,9 @@ public class Project {
 
     public String getSubmissionsDirectory()        { return submissionsDirectory; }
     public void   setSubmissionsDirectory(String d){ this.submissionsDirectory = d; }
+
+    public int    getConfigurationId()             { return configurationId; }
+    public void   setConfigurationId(int id)       { this.configurationId = id; }
 
     public List<TestCase> getTestCases()           { return testCases; }
     public void addTestCase(TestCase tc)           { testCases.add(tc); }

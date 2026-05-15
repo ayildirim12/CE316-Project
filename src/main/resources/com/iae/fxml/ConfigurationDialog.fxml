@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.iae.ui.ConfigurationDialogController"
+      styleClass="progress-dialog-root"
+      spacing="14" prefWidth="480" minWidth="400">
+
+    <padding><Insets top="24" right="24" bottom="20" left="24"/></padding>
+
+    <!-- Title  settings = E8B8 -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Label text="&#xE8B8;" styleClass="progress-dialog-icon"/>
+        <Label fx:id="dialogTitle" text="New Configuration" styleClass="progress-dialog-title"/>
+    </HBox>
+
+    <Pane styleClass="section-divider" maxHeight="1"/>
+
+    <!-- Configuration Name -->
+    <VBox spacing="4">
+        <Label text="CONFIGURATION NAME" styleClass="field-label"/>
+        <TextField fx:id="nameField" styleClass="text-field"
+                   promptText="e.g. Java 17 Standard"/>
+    </VBox>
+
+    <!-- Language -->
+    <VBox spacing="4">
+        <Label text="LANGUAGE" styleClass="field-label"/>
+        <TextField fx:id="languageField" styleClass="text-field"
+                   promptText="e.g. Java, C, Python"/>
+    </VBox>
+
+    <!-- Source File Name -->
+    <VBox spacing="4">
+        <Label text="SOURCE FILE NAME" styleClass="field-label"/>
+        <TextField fx:id="sourceFileField" styleClass="text-field"
+                   promptText="e.g. Main.java, main.c, solution.py"/>
+    </VBox>
+
+    <!-- Requires Compilation toggle -->
+    <CheckBox fx:id="needsCompilationCheck"
+              text="Requires compilation (disable for interpreted languages)"
+              onAction="#handleNeedsCompilationToggle"/>
+
+    <!-- Compile section (shown only when needsCompilation is true) -->
+    <VBox fx:id="compileSection" spacing="10" visible="false" managed="false">
+        <Label text="COMPILATION" styleClass="field-label"/>
+        <VBox spacing="4">
+            <Label text="Compile Command" styleClass="field-label"/>
+            <TextField fx:id="compileCommandField" styleClass="text-field"
+                       promptText="e.g. /usr/bin/javac"/>
+        </VBox>
+        <VBox spacing="4">
+            <Label text="Compile Arguments" styleClass="field-label"/>
+            <TextField fx:id="compileArgsField" styleClass="text-field"
+                       promptText="e.g. Main.java -d ."/>
+        </VBox>
+    </VBox>
+
+    <!-- Run section -->
+    <VBox spacing="10">
+        <Label text="EXECUTION" styleClass="field-label"/>
+        <VBox spacing="4">
+            <Label text="Run Command" styleClass="field-label"/>
+            <TextField fx:id="runCommandField" styleClass="text-field"
+                       promptText="e.g. java"/>
+        </VBox>
+        <VBox spacing="4">
+            <Label text="Run Arguments" styleClass="field-label"/>
+            <TextField fx:id="runArgsField" styleClass="text-field"
+                       promptText="e.g. Main"/>
+        </VBox>
+    </VBox>
+
+    <!-- Buttons -->
+    <HBox alignment="CENTER_RIGHT" spacing="8">
+        <padding><Insets top="6"/></padding>
+        <Button text="Cancel" styleClass="secondary-button" onAction="#handleCancel"/>
+        <Button text="Save" styleClass="primary-button" onAction="#handleSave"/>
+    </HBox>
+
+</VBox>

@@ -22,6 +22,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,10 +59,11 @@ public class MainWindowController {
     @FXML private TableColumn<String[], String>  tcOutputCol;
     @FXML private TableColumn<String[], String>  tcActionCol;
 
-    /* ── UI state (no model method calls – integration via TODO) ── */
+    /* ── UI state ── */
     private String                currentProjectName   = null;
     private String                currentConfigName    = null;
     private String                submissionsDir       = null;
+    private Project               currentProject       = null;
     private final ObservableList<String[]> testCaseRows =
             FXCollections.observableArrayList();
 
@@ -82,17 +84,8 @@ public class MainWindowController {
         projectTreeView.setRoot(root);
         projectTreeView.setShowRoot(false);
 
-        /*
-         * TODO: replace demo list with real persistence once
-         *       Sine's ProjectManager.getAllProjects() is implemented:
-         *
-         *   ProjectManager pm = new ProjectManager();
-         *   for (Project p : pm.getAllProjects())
-         *       root.getChildren().add(new TreeItem<>(p.getName()));
-         */
-        List<String> demoNames = List.of("CS101 – Homework 1", "Data Structures – Lab 4");
-        for (String name : demoNames)
-            root.getChildren().add(new TreeItem<>(name));
+        for (Project p : ProjectManager.getInstance().getAllProjects())
+            root.getChildren().add(new TreeItem<>(p.getName()));
 
         projectTreeView.getSelectionModel().selectedItemProperty()
                 .addListener((obs, oldVal, newVal) -> {
@@ -141,22 +134,25 @@ public class MainWindowController {
     private void loadProjectByName(String name) {
         currentProjectName = name;
 
-        /*
-         * TODO: load the real Project object and resolve Configuration once
-         *       Sine's ProjectManager and Ayşenaz's ConfigurationManager exist:
-         *
-         *   Project p = projectManager.getAllProjects().stream()
-         *       .filter(x -> x.getName().equals(name)).findFirst().orElse(null);
-         *   currentConfigName = configManager.getConfiguration(p.getConfigurationId()).getName();
-         *   submissionsDir    = p.getSubmissionsDirectory();
-         *   testCaseRows.setAll( convert(p.getTestCases()) );
-         */
-        currentConfigName = "Java Standard 17";
-        submissionsDir    = "";
-        testCaseRows.setAll(
-                new String[]{"--input 5",  "expected/tc1.txt"},
-                new String[]{"--input 10", "expected/tc2.txt"}
-        );
+        Project p = ProjectManager.getInstance().findByName(name).orElse(null);
+        if (p != null) {
+            currentProject = p;
+            submissionsDir = nullSafe(p.getSubmissionsDirectory());
+            currentConfigName = ConfigurationManager.getInstance()
+                    .findById(p.getConfigurationId())
+                    .map(Configuration::getName)
+                    .orElse("(none)");
+            testCaseRows.setAll(p.getTestCases().stream()
+                    .map(tc -> new String[]{
+                            nullSafe(tc.getInputArgs()),
+                            nullSafe(tc.getExpectedOutputFilePath())})
+                    .toList());
+        } else {
+            currentProject    = null;
+            currentConfigName = "(none)";
+            submissionsDir    = "";
+            testCaseRows.clear();
+        }
 
         projectNameLabel.setText(currentProjectName);
         configBadge.setText(currentConfigName);
@@ -211,10 +207,46 @@ public class MainWindowController {
     }
     @FXML private void handleExit() { Platform.exit(); }
 
-    /* Delegate to Ayşenaz's controllers (stubs until she implements them) */
-    @FXML private void handleNewConfiguration()  { /* TODO: open ConfigurationDialogController */ }
-    @FXML private void handleEditConfiguration() { /* TODO: open ConfigurationDialogController */ }
-    @FXML private void handleHelp()              { /* TODO: open HelpController */ }
+    @FXML private void handleNewConfiguration() {
+        try {
+            Window owner = mainContentArea.getScene().getWindow();
+            ConfigurationDialogController dlg = ConfigurationDialogController.create(owner);
+            dlg.showAndWait();
+            Configuration saved = dlg.getResult();
+            if (saved != null) setStatus("Configuration saved: " + saved.getName());
+        } catch (IOException e) {
+            showError("Could not open Configuration dialog: " + e.getMessage());
+        }
+    }
+
+    @FXML private void handleEditConfiguration() {
+        List<Configuration> all = ConfigurationManager.getInstance().findAll();
+        if (all.isEmpty()) {
+            showError("No configurations found. Create one first.");
+            return;
+        }
+        List<String> names = all.stream().map(Configuration::getName).toList();
+        ChoiceDialog<String> pick = new ChoiceDialog<>(names.get(0), names);
+        pick.setTitle("Edit Configuration");
+        pick.setHeaderText("Select a configuration to edit:");
+        pick.setContentText("Configuration:");
+        pick.showAndWait().ifPresent(chosen -> {
+            ConfigurationManager.getInstance().findByName(chosen).ifPresent(config -> {
+                try {
+                    Window owner = mainContentArea.getScene().getWindow();
+                    ConfigurationDialogController dlg = ConfigurationDialogController.create(owner);
+                    dlg.setConfiguration(config);
+                    dlg.showAndWait();
+                    Configuration saved = dlg.getResult();
+                    if (saved != null) setStatus("Configuration updated: " + saved.getName());
+                } catch (IOException e) {
+                    showError("Could not open Configuration dialog: " + e.getMessage());
+                }
+            });
+        });
+    }
+
+    @FXML private void handleHelp()              { /* deferred to final phase */ }
 
     @FXML private void handleAbout() {
         Alert a = new Alert(Alert.AlertType.INFORMATION,
@@ -291,10 +323,20 @@ public class MainWindowController {
 
     @FXML
     private void handleAddTestCase() {
-        testCaseRows.add(new String[]{"", ""});
-        /*
-         * TODO: persist via ProjectManager once Sine implements it.
-         */
+        try {
+            Window owner = mainContentArea.getScene().getWindow();
+            TestCaseDialogController dlg = TestCaseDialogController.create(owner);
+            dlg.showAndWait();
+            TestCase tc = dlg.getResult();
+            if (tc == null) return;
+            if (currentProject != null) currentProject.addTestCase(tc);
+            testCaseRows.add(new String[]{
+                    nullSafe(tc.getInputArgs()),
+                    nullSafe(tc.getExpectedOutputFilePath())
+            });
+        } catch (IOException e) {
+            showError("Could not open Test Case dialog: " + e.getMessage());
+        }
     }
 
     /* ── Nav tabs ── */
@@ -322,20 +364,19 @@ public class MainWindowController {
     /* ── Simple dialogs for new / open project ── */
 
     private void promptNewProject() {
-        TextInputDialog dlg = new TextInputDialog("New Project");
-        dlg.setTitle("New Project");
-        dlg.setHeaderText("Enter project name:");
-        dlg.setContentText("Name:");
-        dlg.showAndWait().ifPresent(name -> {
-            if (name.isBlank()) return;
-            /*
-             * TODO: persist via ProjectManager:
-             *   projectManager.createProject(new Project(...));
-             */
+        try {
+            Window owner = mainContentArea.getScene().getWindow();
+            ProjectDialogController dlg = ProjectDialogController.create(owner);
+            dlg.showAndWait();
+            Project created = dlg.getResult();
+            if (created == null) return;
             TreeItem<String> root = projectTreeView.getRoot();
-            root.getChildren().add(new TreeItem<>(name));
+            root.getChildren().add(new TreeItem<>(created.getName()));
             projectTreeView.getSelectionModel().selectLast();
-        });
+            setStatus("Project created: " + created.getName());
+        } catch (IOException e) {
+            showError("Could not open New Project dialog: " + e.getMessage());
+        }
     }
 
     private void promptOpenProject() {
@@ -409,4 +450,6 @@ public class MainWindowController {
         a.setHeaderText(null);
         a.showAndWait();
     }
+
+    private static String nullSafe(String s) { return s != null ? s : ""; }
 }
