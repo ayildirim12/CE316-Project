@@ -6,7 +6,8 @@
 <VBox xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.iae.ui.ResultsViewController"
-      styleClass="results-pane">
+      styleClass="results-pane"
+      stylesheets="@../css/styles.css">
 
     <!-- ── Summary bar ─────────────────────────────────────────────── -->
     <HBox styleClass="summary-bar">
