@@ -2,6 +2,7 @@ package com.iae.ui;
 
 import com.iae.logic.CodeRunner;
 import com.iae.logic.Compiler;
+import com.iae.logic.DefaultCompiler;
 import com.iae.logic.ConfigurationManager;
 import com.iae.logic.DatabaseManager;
 import com.iae.logic.DirectoryScanner;
@@ -9,7 +10,6 @@ import com.iae.logic.EvaluationEngine;
 import com.iae.logic.OutputComparator;
 import com.iae.logic.ProjectManager;
 import com.iae.model.ComparisonResult;
-import com.iae.model.CompileResult;
 import com.iae.model.Configuration;
 import com.iae.model.EvaluationResult;
 import com.iae.model.ExecutionResult;
@@ -300,13 +300,9 @@ public class MainWindowController {
         Configuration configSnapshot = config;
 
         Thread worker = new Thread(() -> {
-            // Compiler interface has no concrete implementation yet;
-            // this stub returns success and is only invoked when config.needsCompilation == true.
-            Compiler stubCompiler = (sub, cfg) -> new CompileResult(true, null, 0);
-
             EvaluationEngine engine = new EvaluationEngine(
                     new DirectoryScanner(),
-                    stubCompiler,
+                    new DefaultCompiler(),
                     new CodeRunner(),
                     new OutputComparator(),
                     DatabaseManager.getInstance(),
