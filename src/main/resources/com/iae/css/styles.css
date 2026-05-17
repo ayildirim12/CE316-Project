@@ -182,7 +182,7 @@
 }
 .sidebar-tab:hover { -fx-background-color: #e8e8e8; }
 .sidebar-tab-active {
-    -fx-background-color: #ffffff;
+    -fx-background-color: #e8e8e8;
     -fx-border-color: transparent transparent #005FB8 transparent;
     -fx-border-width: 0 0 2 0;
     -fx-text-fill: #005FB8;

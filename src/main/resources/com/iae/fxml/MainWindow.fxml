@@ -55,15 +55,20 @@
             <!-- Menu bar -->
             <MenuBar styleClass="menu-bar">
                 <Menu text="File">
-                    <MenuItem text="New Project"   onAction="#handleNewProject"/>
-                    <MenuItem text="Open Project"  onAction="#handleOpenProject"/>
-                    <MenuItem text="Close Project" onAction="#handleCloseProject"/>
+                    <MenuItem text="New Project"    onAction="#handleNewProject"/>
+                    <MenuItem text="Open Project"   onAction="#handleOpenProject"/>
+                    <MenuItem text="Edit Project"   onAction="#handleEditProject"/>
+                    <MenuItem text="Close Project"  onAction="#handleCloseProject"/>
                     <SeparatorMenuItem/>
-                    <MenuItem text="Exit"          onAction="#handleExit"/>
+                    <MenuItem text="Delete Project" onAction="#handleDeleteProject"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Exit"           onAction="#handleExit"/>
                 </Menu>
                 <Menu text="Configurations">
-                    <MenuItem text="New Configuration"  onAction="#handleNewConfiguration"/>
-                    <MenuItem text="Edit Configuration" onAction="#handleEditConfiguration"/>
+                    <MenuItem text="New Configuration"    onAction="#handleNewConfiguration"/>
+                    <MenuItem text="Edit Configuration"   onAction="#handleEditConfiguration"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Delete Configuration" onAction="#handleDeleteConfiguration"/>
                 </Menu>
                 <Menu text="Help">
                     <MenuItem text="Help"  onAction="#handleHelp"/>
@@ -83,7 +88,7 @@
             <!-- Sidebar navigation tabs -->
             <!-- account_tree=E97A  assignment=E85D  assessment=E85C  settings=E8B8 -->
             <HBox styleClass="sidebar-tab-bar">
-                <Button styleClass="sidebar-tab sidebar-tab-active"
+                <Button fx:id="projectsTab" styleClass="sidebar-tab"
                         onAction="#showProjectsView"
                         HBox.hgrow="ALWAYS" maxWidth="Infinity">
                     <graphic><VBox alignment="CENTER" spacing="2">
@@ -92,24 +97,24 @@
                     </VBox></graphic>
                     <contentDisplay>GRAPHIC_ONLY</contentDisplay>
                 </Button>
-                <Button styleClass="sidebar-tab" onAction="#showSubmissionsView"
-                        HBox.hgrow="ALWAYS" maxWidth="Infinity" disable="true">
+                <Button fx:id="submissionsTab" styleClass="sidebar-tab" onAction="#showSubmissionsView"
+                        HBox.hgrow="ALWAYS" maxWidth="Infinity">
                     <graphic><VBox alignment="CENTER" spacing="2">
                         <Label text="&#xE85D;" styleClass="sidebar-tab-icon"/>
                         <Label text="Submissions" styleClass="sidebar-tab"/>
                     </VBox></graphic>
                     <contentDisplay>GRAPHIC_ONLY</contentDisplay>
                 </Button>
-                <Button styleClass="sidebar-tab" onAction="#showAnalyticsView"
-                        HBox.hgrow="ALWAYS" maxWidth="Infinity" disable="true">
+                <Button fx:id="analyticsTab" styleClass="sidebar-tab" onAction="#showAnalyticsView"
+                        HBox.hgrow="ALWAYS" maxWidth="Infinity">
                     <graphic><VBox alignment="CENTER" spacing="2">
                         <Label text="&#xE85C;" styleClass="sidebar-tab-icon"/>
                         <Label text="Analytics" styleClass="sidebar-tab"/>
                     </VBox></graphic>
                     <contentDisplay>GRAPHIC_ONLY</contentDisplay>
                 </Button>
-                <Button styleClass="sidebar-tab"
-                        HBox.hgrow="ALWAYS" maxWidth="Infinity" disable="true">
+                <Button fx:id="settingsTab" styleClass="sidebar-tab" onAction="#showSettingsView"
+                        HBox.hgrow="ALWAYS" maxWidth="Infinity">
                     <graphic><VBox alignment="CENTER" spacing="2">
                         <Label text="&#xE8B8;" styleClass="sidebar-tab-icon"/>
                         <Label text="Settings" styleClass="sidebar-tab"/>

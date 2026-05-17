@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -39,8 +40,9 @@ public class ResultsViewController {
     @FXML private Label                  detailStudentLabel;
 
     /* ── State ── */
-    private String[][] results;
-    private int        tcCount;
+    private String[][]              results;
+    private int                     tcCount;
+    private List<EvaluationResult>  evalResults = new ArrayList<>();
 
     /* ── Public entry point ── */
 
@@ -50,9 +52,10 @@ public class ResultsViewController {
      * @param results  String[][] – one row per student submission
      * @param tcCount  number of test cases (= number of dynamic TC columns)
      */
-    public void initData(String[][] results, int tcCount) {
-        this.results = results;
-        this.tcCount = tcCount;
+    public void initData(String[][] results, int tcCount, List<EvaluationResult> evalResults) {
+        this.results     = results;
+        this.tcCount     = tcCount;
+        this.evalResults = evalResults != null ? evalResults : new ArrayList<>();
         buildColumns();
         resultsTable.setItems(FXCollections.observableArrayList(results));
         updateSummaryCards();
@@ -63,7 +66,7 @@ public class ResultsViewController {
 
     /**
      * Convenience overload: converts EvaluationResult objects to the internal
-     * String[][] format and delegates to {@link #initData(String[][], int)}.
+     * String[][] format and delegates to {@link #initData(String[][], int, List)}.
      */
     public void initData(List<EvaluationResult> evalResults, List<TestCase> testCases) {
         int tc = testCases.size();
@@ -95,7 +98,7 @@ public class ResultsViewController {
             row[3 + tc] = r.getErrorMessage() != null ? r.getErrorMessage() : "";
             rows[i] = row;
         }
-        initData(rows, tc);
+        initData(rows, tc, evalResults);
     }
 
     /* ── Build dynamic columns ── */
@@ -171,19 +174,70 @@ public class ResultsViewController {
             detailStudentLabel.setText("");
             return;
         }
-        detailStudentLabel.setText(row[0]);
+
+        String studentId = row[0];
+        detailStudentLabel.setText(studentId);
+
+        EvaluationResult er = evalResults.stream()
+                .filter(r -> studentId.equals(r.getStudentId()))
+                .findFirst().orElse(null);
 
         StringBuilder sb = new StringBuilder();
-        sb.append("=== Student: ").append(row[0]).append(" ===\n");
-        sb.append("Compile Status : ").append(safeGet(row, 1)).append("\n\n");
+        sb.append("Student : ").append(studentId).append("\n");
+        sb.append("─".repeat(44)).append("\n\n");
+
+        // Compile
+        String compileStatus = safeGet(row, 1);
+        sb.append("Compile : ").append(compileStatus).append("\n");
+        if (er != null && er.getCompileResult() != null) {
+            String compileErr = er.getCompileResult().getStderr();
+            if (compileErr != null && !compileErr.isBlank()) {
+                sb.append("  ").append(compileErr.trim().replace("\n", "\n  ")).append("\n");
+            }
+        }
+        sb.append("\n");
+
+        // Per test-case output
+        List<ExecutionResult>  execs = er != null ? er.getExecutionResults()  : List.of();
+        List<ComparisonResult> comps = er != null ? er.getComparisonResults() : List.of();
 
         for (int t = 0; t < tcCount; t++) {
-            sb.append("TC").append(t + 1).append(" : ").append(safeGet(row, 2 + t)).append("\n");
+            String tcStatus = safeGet(row, 2 + t);
+            sb.append("TC").append(t + 1).append(" : ").append(tcStatus).append("\n");
+
+            if (t < execs.size()) {
+                String stdout = execs.get(t).getStdout();
+                String stderr = execs.get(t).getStderr();
+                if (stdout != null && !stdout.isBlank()) {
+                    sb.append("  Output : ")
+                      .append(stdout.trim().replace("\n", "\n           "))
+                      .append("\n");
+                }
+                if (stderr != null && !stderr.isBlank()) {
+                    sb.append("  Stderr : ")
+                      .append(stderr.trim().replace("\n", "\n           "))
+                      .append("\n");
+                }
+            }
+
+            if (t < comps.size() && !comps.get(t).isMatch()) {
+                String diff = comps.get(t).getDiff();
+                if (diff != null && !diff.isBlank()) {
+                    sb.append("  Diff   :\n");
+                    for (String line : diff.split("\n")) {
+                        sb.append("    ").append(line).append("\n");
+                    }
+                }
+            }
+            sb.append("\n");
         }
 
-        sb.append("\nOverall Status : ").append(safeGet(row, 2 + tcCount)).append("\n");
-        String err = safeGet(row, 3 + tcCount);
-        if (!err.isBlank()) sb.append("Error          : ").append(err).append("\n");
+        // Overall
+        sb.append("Overall : ").append(safeGet(row, 2 + tcCount)).append("\n");
+        String errMsg = safeGet(row, 3 + tcCount);
+        if (!errMsg.isBlank()) {
+            sb.append("Error   : ").append(errMsg).append("\n");
+        }
 
         detailOutputArea.setText(sb.toString());
     }
