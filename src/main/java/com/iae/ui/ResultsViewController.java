@@ -1,5 +1,10 @@
 package com.iae.ui;
 
+import com.iae.model.ComparisonResult;
+import com.iae.model.EvaluationResult;
+import com.iae.model.ExecutionResult;
+import com.iae.model.Status;
+import com.iae.model.TestCase;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -10,23 +15,17 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
 /**
  * Controls the Results View.
  *
- * Receives evaluation data as a plain String[][] so this controller compiles
- * and runs independently of the model / logic layer.
- *
- * Row format (matches MainWindowController.runDemoEvaluation):
- *   row[0]            = studentId
- *   row[1]            = compileStatus  ("OK" | "FAILED")
- *   row[2..2+tcCount-1] = per-test-case ("PASS" | "FAIL" | "—")
- *   row[2+tcCount]    = overallStatus  ("SUCCESS" | "WRONG_OUTPUT" | "COMPILE_ERROR" | …)
- *   row[3+tcCount]    = errorMessage
- *
- * TODO: When Furkan's EvaluationResult model is ready, add an overloaded
- *       initData(List<EvaluationResult>, List<TestCase>) that converts the
- *       model objects into this String[][] format and delegates here.
+ * Row format for the internal String[][]:
+ *   row[0]              = studentId
+ *   row[1]              = compileStatus  ("OK" | "FAILED")
+ *   row[2..2+tcCount-1] = per-test-case  ("PASS" | "FAIL" | "TIMEOUT" | "—")
+ *   row[2+tcCount]      = overallStatus  ("SUCCESS" | "WRONG_OUTPUT" | "COMPILE_ERROR" | …)
+ *   row[3+tcCount]      = errorMessage
  */
 public class ResultsViewController {
 
@@ -60,6 +59,43 @@ public class ResultsViewController {
 
         resultsTable.getSelectionModel().selectedItemProperty()
                 .addListener((obs, oldVal, newVal) -> showDetail(newVal));
+    }
+
+    /**
+     * Convenience overload: converts EvaluationResult objects to the internal
+     * String[][] format and delegates to {@link #initData(String[][], int)}.
+     */
+    public void initData(List<EvaluationResult> evalResults, List<TestCase> testCases) {
+        int tc = testCases.size();
+        String[][] rows = new String[evalResults.size()][];
+        for (int i = 0; i < evalResults.size(); i++) {
+            EvaluationResult r = evalResults.get(i);
+            Status st = r.getStatus();
+            String[] row = new String[4 + tc];
+            row[0] = r.getStudentId();
+
+            boolean compileOk = st != Status.COMPILE_ERROR && st != Status.SOURCE_MISSING;
+            row[1] = compileOk ? "OK" : "FAILED";
+
+            List<ComparisonResult> comps = r.getComparisonResults();
+            List<ExecutionResult>  execs = r.getExecutionResults();
+            for (int t = 0; t < tc; t++) {
+                if (!compileOk) {
+                    row[2 + t] = "—";
+                } else if (t < comps.size()) {
+                    row[2 + t] = comps.get(t).isMatch() ? "PASS" : "FAIL";
+                } else if (t < execs.size() && execs.get(t).isTimedOut()) {
+                    row[2 + t] = "TIMEOUT";
+                } else {
+                    row[2 + t] = "—";
+                }
+            }
+
+            row[2 + tc] = st != null ? st.name() : "UNKNOWN";
+            row[3 + tc] = r.getErrorMessage() != null ? r.getErrorMessage() : "";
+            rows[i] = row;
+        }
+        initData(rows, tc);
     }
 
     /* ── Build dynamic columns ── */

@@ -121,6 +121,7 @@ public class ConfigurationDialogController {
         boolean compile = needsCompilationCheck.isSelected();
         compileSection.setVisible(compile);
         compileSection.setManaged(compile);
+        if (stage != null) stage.sizeToScene();
     }
 
     private static String nullSafe(String s) { return s != null ? s : ""; }
