@@ -157,8 +157,8 @@
     -fx-background-color: #f3f3f3;
     -fx-border-color: transparent #c2c6d4 transparent transparent;
     -fx-border-width: 0 1 0 0;
-    -fx-min-width: 220px;
-    -fx-pref-width: 260px;
+    -fx-min-width: 240px;
+    -fx-pref-width: 300px;
 }
 .sidebar-tab-bar {
     -fx-background-color: #f3f3f3;
@@ -173,7 +173,7 @@
     -fx-text-fill: #424752;
     -fx-font-family: 'Inter';
     -fx-font-size: 11px;
-    -fx-padding: 8 6 8 6;
+    -fx-padding: 8 2 8 2;
     -fx-cursor: hand;
     -fx-graphic-text-gap: 4;
     -fx-content-display: TOP;
