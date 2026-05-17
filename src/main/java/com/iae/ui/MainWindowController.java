@@ -49,6 +49,11 @@ public class MainWindowController {
     @FXML private Label                   envStatusLabel;
     @FXML private Button                  runBtn;
 
+    @FXML private Button                  projectsTab;
+    @FXML private Button                  submissionsTab;
+    @FXML private Button                  analyticsTab;
+    @FXML private Button                  settingsTab;
+
     @FXML private VBox                    noProjectPane;
     @FXML private ScrollPane              projectDetailScroll;
     @FXML private Label                   projectNameLabel;
@@ -63,6 +68,7 @@ public class MainWindowController {
     @FXML private TableColumn<String[], String>  tcActionCol;
 
     /* ── UI state ── */
+    private Button                activeTab            = null;
     private String                currentProjectName   = null;
     private String                currentConfigName    = null;
     private String                submissionsDir       = null;
@@ -77,6 +83,7 @@ public class MainWindowController {
         buildProjectTree();
         buildTestCasesTable();
         showNoProjectPane();
+        setActiveTab(projectsTab);
     }
 
     /* ── Sidebar ── */
@@ -123,7 +130,14 @@ public class MainWindowController {
         tcActionCol.setCellFactory(col -> new TableCell<>() {
             private final Button del = new Button("✕");
             { del.getStyleClass().add("ghost-button");
-              del.setOnAction(e -> testCaseRows.remove(getIndex())); }
+              del.setOnAction(e -> {
+                  int idx = getIndex();
+                  testCaseRows.remove(idx);
+                  if (currentProject != null && idx < currentProject.getTestCases().size()) {
+                      currentProject.getTestCases().remove(idx);
+                      saveCurrentProject();
+                  }
+              }); }
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 setGraphic(empty ? null : del);
@@ -202,11 +216,84 @@ public class MainWindowController {
 
     @FXML private void handleNewProject()  { promptNewProject(); }
     @FXML private void handleOpenProject() { promptOpenProject(); }
+    @FXML private void handleEditProject() {
+        List<Project> all = ProjectManager.getInstance().getAllProjects();
+        if (all.isEmpty()) {
+            showError("No projects found. Create one first.");
+            return;
+        }
+        List<String> names = all.stream().map(Project::getName).toList();
+        ChoiceDialog<String> pick = new ChoiceDialog<>(
+                currentProjectName != null ? currentProjectName : names.get(0), names);
+        pick.setTitle("Edit Project");
+        pick.setHeaderText("Select a project to edit:");
+        pick.setContentText("Project:");
+        pick.showAndWait().ifPresent(chosen -> {
+            ProjectManager.getInstance().findByName(chosen).ifPresent(p -> {
+                try {
+                    Window owner = mainContentArea.getScene().getWindow();
+                    ProjectDialogController dlg = ProjectDialogController.create(owner);
+                    dlg.setProject(p);
+                    dlg.showAndWait();
+                    Project saved = dlg.getResult();
+                    if (saved != null) {
+                        // Sync the tree item to the new name
+                        for (TreeItem<String> item : projectTreeView.getRoot().getChildren()) {
+                            if (chosen.equals(item.getValue())) {
+                                item.setValue(saved.getName());
+                                break;
+                            }
+                        }
+                        if (chosen.equals(currentProjectName)) loadProjectByName(saved.getName());
+                        setStatus("Project updated: " + saved.getName());
+                    }
+                } catch (IOException e) {
+                    showError("Could not open Project dialog: " + e.getMessage());
+                }
+            });
+        });
+    }
+
     @FXML private void handleCloseProject() {
         currentProjectName = null;
         testCaseRows.clear();
         showNoProjectPane();
         setStatus("Project closed.");
+    }
+
+    @FXML private void handleDeleteProject() {
+        List<Project> all = ProjectManager.getInstance().getAllProjects();
+        if (all.isEmpty()) {
+            showError("No projects found.");
+            return;
+        }
+        List<String> names = all.stream().map(Project::getName).toList();
+        ChoiceDialog<String> pick = new ChoiceDialog<>(names.get(0), names);
+        pick.setTitle("Delete Project");
+        pick.setHeaderText("Select a project to delete:");
+        pick.setContentText("Project:");
+        pick.showAndWait().ifPresent(chosen -> {
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Are you sure you want to delete \"" + chosen + "\"?\nAll test cases and results will also be deleted.",
+                    ButtonType.YES, ButtonType.NO);
+            confirm.setHeaderText("Delete Project");
+            confirm.showAndWait().ifPresent(btn -> {
+                if (btn == ButtonType.YES) {
+                    ProjectManager.getInstance().findByName(chosen).ifPresent(p -> {
+                        ProjectManager.getInstance().deleteProject(p.getId());
+                        projectTreeView.getRoot().getChildren()
+                                .removeIf(item -> chosen.equals(item.getValue()));
+                        if (chosen.equals(currentProjectName)) {
+                            currentProjectName = null;
+                            currentProject = null;
+                            testCaseRows.clear();
+                            showNoProjectPane();
+                        }
+                        setStatus("Project deleted: " + chosen);
+                    });
+                }
+            });
+        });
     }
     @FXML private void handleExit() { Platform.exit(); }
 
@@ -244,6 +331,33 @@ public class MainWindowController {
                     if (saved != null) setStatus("Configuration updated: " + saved.getName());
                 } catch (IOException e) {
                     showError("Could not open Configuration dialog: " + e.getMessage());
+                }
+            });
+        });
+    }
+
+    @FXML private void handleDeleteConfiguration() {
+        List<Configuration> all = ConfigurationManager.getInstance().findAll();
+        if (all.isEmpty()) {
+            showError("No configurations found.");
+            return;
+        }
+        List<String> names = all.stream().map(Configuration::getName).toList();
+        ChoiceDialog<String> pick = new ChoiceDialog<>(names.get(0), names);
+        pick.setTitle("Delete Configuration");
+        pick.setHeaderText("Select a configuration to delete:");
+        pick.setContentText("Configuration:");
+        pick.showAndWait().ifPresent(chosen -> {
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Are you sure you want to delete \"" + chosen + "\"?\nThis action cannot be undone.",
+                    ButtonType.YES, ButtonType.NO);
+            confirm.setHeaderText("Delete Configuration");
+            confirm.showAndWait().ifPresent(btn -> {
+                if (btn == ButtonType.YES) {
+                    ConfigurationManager.getInstance().findByName(chosen).ifPresent(config -> {
+                        ConfigurationManager.getInstance().delete(config.getId());
+                        setStatus("Configuration deleted: " + chosen);
+                    });
                 }
             });
         });
@@ -324,12 +438,13 @@ public class MainWindowController {
             }
 
             String[][] rows = toDisplayRows(evalResults, tcCount);
+            List<EvaluationResult> finalEvalResults = evalResults;
 
             Platform.runLater(() -> {
                 progress.close();
                 runBtn.setDisable(false);
                 setStatus("Evaluation complete – " + rows.length + " submission(s) processed.");
-                if (!progress.isCancelled()) openResultsView(rows, tcCount);
+                if (!progress.isCancelled()) openResultsView(rows, tcCount, finalEvalResults);
             });
         });
         worker.setDaemon(true);
@@ -367,7 +482,10 @@ public class MainWindowController {
             dlg.showAndWait();
             TestCase tc = dlg.getResult();
             if (tc == null) return;
-            if (currentProject != null) currentProject.addTestCase(tc);
+            if (currentProject != null) {
+                currentProject.addTestCase(tc);
+                saveCurrentProject();
+            }
             testCaseRows.add(new String[]{
                     nullSafe(tc.getInputArgs()),
                     nullSafe(tc.getExpectedOutputFilePath())
@@ -379,20 +497,40 @@ public class MainWindowController {
 
     /* ── Nav tabs ── */
 
-    @FXML private void showProjectsView()    { /* already showing project detail */ }
-    @FXML private void showSubmissionsView() { /* deferred to final phase */ }
-    @FXML private void showAnalyticsView()   { /* deferred to final phase */ }
+    @FXML private void showProjectsView()    { setActiveTab(projectsTab); }
+
+    @FXML private void showSubmissionsView() { showComingSoon("Submissions View", submissionsTab); }
+    @FXML private void showAnalyticsView()   { showComingSoon("Analytics View", analyticsTab); }
+    @FXML private void showSettingsView()    { showComingSoon("Settings", settingsTab); }
+
+    private void showComingSoon(String feature, Button tab) {
+        setActiveTab(tab);
+        Alert a = new Alert(Alert.AlertType.INFORMATION,
+                feature + " will be available in the next version of IAE.",
+                ButtonType.OK);
+        a.setHeaderText("Coming in Next Version");
+        a.showAndWait();
+        setActiveTab(projectsTab);
+    }
+
+    private void setActiveTab(Button tab) {
+        if (activeTab != null) activeTab.getStyleClass().remove("sidebar-tab-active");
+        activeTab = tab;
+        if (tab != null && !tab.getStyleClass().contains("sidebar-tab-active")) {
+            tab.getStyleClass().add("sidebar-tab-active");
+        }
+    }
 
     /* ── Load ResultsView FXML ── */
 
-    private void openResultsView(String[][] results, int tcCount) {
+    private void openResultsView(String[][] results, int tcCount, List<EvaluationResult> evalResults) {
         try {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/com/iae/fxml/ResultsView.fxml"));
             Parent root = loader.load();
             ResultsViewController rvc = loader.getController();
             root.getProperties().put("mainWindowController", this);
-            rvc.initData(results, tcCount);
+            rvc.initData(results, tcCount, evalResults);
             showResultsPane(root);
         } catch (IOException e) {
             showError("Could not load Results View: " + e.getMessage());
@@ -471,6 +609,15 @@ public class MainWindowController {
     }
 
     /* ── Utilities ── */
+
+    private void saveCurrentProject() {
+        if (currentProject == null) return;
+        try {
+            ProjectManager.getInstance().saveProject(currentProject);
+        } catch (RuntimeException e) {
+            setStatus("Warning: could not save project – " + e.getMessage());
+        }
+    }
 
     private void setStatus(String msg) { if (statusLabel != null) statusLabel.setText(msg); }
 
