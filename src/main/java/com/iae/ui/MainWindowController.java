@@ -1,13 +1,20 @@
 package com.iae.ui;
 
+import com.iae.logic.CodeRunner;
+import com.iae.logic.Compiler;
 import com.iae.logic.ConfigurationManager;
+import com.iae.logic.DatabaseManager;
+import com.iae.logic.DirectoryScanner;
 import com.iae.logic.EvaluationEngine;
+import com.iae.logic.OutputComparator;
 import com.iae.logic.ProjectManager;
-import com.iae.logic.ReportManager;
+import com.iae.model.ComparisonResult;
+import com.iae.model.CompileResult;
 import com.iae.model.Configuration;
 import com.iae.model.EvaluationResult;
+import com.iae.model.ExecutionResult;
 import com.iae.model.Project;
-import com.iae.model.Submission;
+import com.iae.model.Status;
 import com.iae.model.TestCase;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -32,10 +39,6 @@ import java.util.List;
 /**
  * Controls the main application window:
  * menu bar, sidebar project tree, project-detail pane, and Run button.
- *
- * Internal data is represented as plain Strings / String[] arrays so that
- * this controller compiles and runs while teammates implement the model and
- * logic layers. Each integration point is marked with a TODO comment.
  */
 public class MainWindowController {
 
@@ -139,7 +142,7 @@ public class MainWindowController {
             currentProject = p;
             submissionsDir = nullSafe(p.getSubmissionsDirectory());
             currentConfigName = ConfigurationManager.getInstance()
-                    .findById(p.getConfigurationId())
+                    .findByName(p.getConfigurationId())
                     .map(Configuration::getName)
                     .orElse("(none)");
             testCaseRows.setAll(p.getTestCases().stream()
@@ -264,6 +267,21 @@ public class MainWindowController {
             showError("Please set a submissions directory before running.");
             return;
         }
+        if (currentProject == null) {
+            showError("No project loaded.");
+            return;
+        }
+
+        String cfgId = currentProject.getConfigurationId();
+        Configuration config = (cfgId != null)
+                ? ConfigurationManager.getInstance().findByName(cfgId).orElse(null)
+                : null;
+        if (config == null) {
+            showError("No configuration is assigned to this project.\nPlease edit the project and assign one first.");
+            return;
+        }
+
+        currentProject.setSubmissionsDirectory(submissionsDir);
 
         Stage owner = (Stage) mainContentArea.getScene().getWindow();
         ProgressDialog progress;
@@ -277,25 +295,45 @@ public class MainWindowController {
         runBtn.setDisable(true);
         setStatus("Running evaluation…");
 
-        int tcCount = testCaseRows.size();
+        int tcCount = currentProject.getTestCases().size();
+        Project projectSnapshot = currentProject;
+        Configuration configSnapshot = config;
 
         Thread worker = new Thread(() -> {
-            /*
-             * TODO: replace demo simulation with real evaluation once
-             *       Furkan's EvaluationEngine is implemented:
-             *
-             *   EvaluationEngine engine = new EvaluationEngine();
-             *   List<EvaluationResult> real = engine.execute(project, config, progress);
-             *   // then convert EvaluationResult list → String[][] and call initData()
-             */
-            String[][] demoResults = runDemoEvaluation(tcCount, progress);
+            // Compiler interface has no concrete implementation yet;
+            // this stub returns success and is only invoked when config.needsCompilation == true.
+            Compiler stubCompiler = (sub, cfg) -> new CompileResult(true, null, 0);
+
+            EvaluationEngine engine = new EvaluationEngine(
+                    new DirectoryScanner(),
+                    stubCompiler,
+                    new CodeRunner(),
+                    new OutputComparator(),
+                    DatabaseManager.getInstance(),
+                    progress,
+                    10_000
+            );
+
+            List<EvaluationResult> evalResults;
+            try {
+                evalResults = engine.runProject(projectSnapshot, configSnapshot);
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    progress.close();
+                    runBtn.setDisable(false);
+                    showError("Evaluation error: " + ex.getMessage());
+                    setStatus("Evaluation failed.");
+                });
+                return;
+            }
+
+            String[][] rows = toDisplayRows(evalResults, tcCount);
 
             Platform.runLater(() -> {
                 progress.close();
                 runBtn.setDisable(false);
-                setStatus("Evaluation complete – "
-                        + demoResults.length + " submission(s) processed.");
-                openResultsView(demoResults, tcCount);
+                setStatus("Evaluation complete – " + rows.length + " submission(s) processed.");
+                if (!progress.isCancelled()) openResultsView(rows, tcCount);
             });
         });
         worker.setDaemon(true);
@@ -312,10 +350,14 @@ public class MainWindowController {
         if (dir != null) {
             submissionsDir = dir.getAbsolutePath();
             submissionsDirField.setText(submissionsDir);
-            /*
-             * TODO: persist via ProjectManager once Sine implements it:
-             *   projectManager.updateProject(currentProject);
-             */
+            if (currentProject != null) {
+                currentProject.setSubmissionsDirectory(submissionsDir);
+                try {
+                    ProjectManager.getInstance().saveProject(currentProject);
+                } catch (RuntimeException e) {
+                    // Not fatal — directory is updated in memory for this session
+                }
+            }
         }
     }
 
@@ -394,51 +436,42 @@ public class MainWindowController {
         dlg.showAndWait().ifPresent(this::loadProjectByName);
     }
 
-    /* ── Demo evaluation (pure UI simulation – no model method calls) ── */
+    /* ── Convert EvaluationResult list → display rows ── */
 
     /**
-     * Simulates evaluation for the progress dialog demo.
-     * Each row format: [studentId, compileStatus, tc1..tcN, overallStatus, errorMessage]
+     * Row format: [studentId, compileStatus, tc1..tcN, overallStatus, errorMessage]
      * Array length per row: 4 + tcCount
-     *
-     * TODO: Remove this method once Furkan's EvaluationEngine is integrated.
      */
-    private String[][] runDemoEvaluation(int tcCount, ProgressDialog progress) {
-        String[] students = {"S-10290", "S-10291", "S-10292", "S-10293", "S-10294"};
-        int total   = students.length;
-        int rowLen  = 4 + tcCount; // [studentId, compile, tc1..tcN, status, error]
-        List<String[]> rows = new ArrayList<>();
+    private String[][] toDisplayRows(List<EvaluationResult> results, int tcCount) {
+        String[][] rows = new String[results.size()][];
+        for (int i = 0; i < results.size(); i++) {
+            EvaluationResult r = results.get(i);
+            Status st = r.getStatus();
+            String[] row = new String[4 + tcCount];
+            row[0] = r.getStudentId();
 
-        for (int i = 0; i < total; i++) {
-            if (progress.isCancelled()) break;
-            String sid = students[i];
-            progress.onProgress(i + 1, total, sid);
-            try { Thread.sleep(450); } catch (InterruptedException ignored) {}
+            boolean compileOk = st != Status.COMPILE_ERROR && st != Status.SOURCE_MISSING;
+            row[1] = compileOk ? "OK" : "FAILED";
 
-            String[] row = new String[rowLen];
-            row[0] = sid;
-
-            if (i == 3) {                              // compile failure
-                row[1] = "FAILED";
-                for (int t = 0; t < tcCount; t++) row[2 + t] = "—";
-                row[2 + tcCount] = "COMPILE_ERROR";
-                row[3 + tcCount] = "Syntax error – Main.java:12";
-            } else {
-                row[1] = "OK";
-                boolean allPass = true;
-                for (int t = 0; t < tcCount; t++) {
-                    boolean pass = !(i == 2 && t == 1); // S-10292 fails TC2
-                    row[2 + t] = pass ? "PASS" : "FAIL";
-                    if (!pass) allPass = false;
+            List<ComparisonResult> comps = r.getComparisonResults();
+            List<ExecutionResult>  execs = r.getExecutionResults();
+            for (int t = 0; t < tcCount; t++) {
+                if (!compileOk) {
+                    row[2 + t] = "—";
+                } else if (t < comps.size()) {
+                    row[2 + t] = comps.get(t).isMatch() ? "PASS" : "FAIL";
+                } else if (t < execs.size() && execs.get(t).isTimedOut()) {
+                    row[2 + t] = "TIMEOUT";
+                } else {
+                    row[2 + t] = "—";
                 }
-                row[2 + tcCount] = allPass ? "SUCCESS" : "WRONG_OUTPUT";
-                row[3 + tcCount] = "";
             }
-            progress.appendLog(sid + " → " + row[2 + tcCount]);
-            rows.add(row);
+
+            row[2 + tcCount] = st != null ? st.name() : "UNKNOWN";
+            row[3 + tcCount] = r.getErrorMessage() != null ? r.getErrorMessage() : "";
+            rows[i] = row;
         }
-        progress.onComplete();
-        return rows.toArray(new String[0][]);
+        return rows;
     }
 
     /* ── Utilities ── */
