@@ -55,6 +55,8 @@ public class EvaluationEngine {
             return List.of();
         }
 
+        File baseDir = submissionsDir.getParentFile();
+
         List<EvaluationResult> results = new ArrayList<>();
         int total = submissions.size();
 
@@ -69,7 +71,7 @@ public class EvaluationEngine {
             boolean canExecute = evaluateCompilePhase(submission, config, result);
 
             if (canExecute) {
-                evaluateExecutionPhase(submission, config, project.getTestCases(), result);
+                evaluateExecutionPhase(submission, config, project.getTestCases(), result, baseDir);
             }
 
             result.setDurationMs(System.currentTimeMillis() - start);
@@ -98,12 +100,6 @@ public class EvaluationEngine {
                                          EvaluationResult result) {
         if (!config.isNeedsCompilation()) return true;
 
-        if (submission.getSourceFiles().isEmpty()) {
-            result.setStatus(Status.SOURCE_MISSING);
-            result.setErrorMessage("No source file found in submission directory");
-            return false;
-        }
-
         try {
             CompileResult cr = compiler.compile(submission, config);
             result.setCompileResult(cr);
@@ -126,7 +122,8 @@ public class EvaluationEngine {
     private void evaluateExecutionPhase(Submission submission,
                                         Configuration config,
                                         List<TestCase> testCases,
-                                        EvaluationResult result) {
+                                        EvaluationResult result,
+                                        File baseDir) {
         Status worstStatus = Status.SUCCESS;
 
         for (TestCase tc : testCases) {
@@ -151,8 +148,8 @@ public class EvaluationEngine {
             }
 
             try {
-                ComparisonResult cr = outputComparator.compare(
-                        er.getStdout(), tc.getExpectedOutputFilePath());
+                String expectedPath = resolveExpectedPath(tc.getExpectedOutputFilePath(), baseDir);
+                ComparisonResult cr = outputComparator.compare(er.getStdout(), expectedPath);
                 result.addComparisonResult(cr);
                 if (!cr.isMatch()) {
                     worstStatus = dominantStatus(worstStatus, Status.WRONG_OUTPUT);
@@ -163,6 +160,13 @@ public class EvaluationEngine {
         }
 
         result.setStatus(worstStatus);
+    }
+
+    private static String resolveExpectedPath(String path, File baseDir) {
+        if (path == null) return "";
+        File f = new File(path);
+        if (f.isAbsolute()) return path;
+        return new File(baseDir, path).getAbsolutePath();
     }
 
     // Returns the more severe of two statuses.
