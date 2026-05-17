@@ -7,7 +7,8 @@
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.iae.ui.TestCaseDialogController"
       styleClass="progress-dialog-root"
-      spacing="14" prefWidth="460" minWidth="380">
+      spacing="14" prefWidth="460" minWidth="380"
+      stylesheets="@../css/styles.css">
 
     <padding><Insets top="24" right="24" bottom="20" left="24"/></padding>
 
