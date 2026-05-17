@@ -15,12 +15,14 @@ import java.util.List;
  * Singleton that owns the single SQLite JDBC connection for the application's
  * lifetime.
  *
- * <p>On first connection the database file {@code iae.db} is created in the
+ * <p>
+ * On first connection the database file {@code iae.db} is created in the
  * application working directory and the three tables
  * ({@code PROJECTS}, {@code TESTCASES}, {@code RESULTS}) are initialised with
  * {@code CREATE TABLE IF NOT EXISTS}, so the call is safe on every launch.
  *
- * <p>All mutating operations are wrapped in explicit transactions; callers
+ * <p>
+ * All mutating operations are wrapped in explicit transactions; callers
  * receive {@link SQLException} cleanly so the UI layer can handle them.
  */
 public class DatabaseManager {
@@ -37,7 +39,8 @@ public class DatabaseManager {
         return instance;
     }
 
-    protected DatabaseManager() {}
+    protected DatabaseManager() {
+    }
 
     // ── Connection ────────────────────────────────────────────────────────────
 
@@ -57,7 +60,9 @@ public class DatabaseManager {
         }
     }
 
-    /** Closes the connection. Subsequent calls to any data method will re-open it. */
+    /**
+     * Closes the connection. Subsequent calls to any data method will re-open it.
+     */
     public synchronized void close() throws SQLException {
         if (connection != null && !connection.isClosed()) {
             connection.close();
@@ -95,58 +100,54 @@ public class DatabaseManager {
 
             // CONFIGURATIONS
             stmt.execute(
-                "CREATE TABLE IF NOT EXISTS CONFIGURATIONS (" +
-                "  id                INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "  name              TEXT    NOT NULL," +
-                "  language          TEXT," +
-                "  source_file       TEXT," +
-                "  needs_compilation INTEGER NOT NULL DEFAULT 0," +
-                "  compile_command   TEXT," +
-                "  compile_args      TEXT," +
-                "  run_command       TEXT," +
-                "  run_args          TEXT" +
-                ")"
-            );
+                    "CREATE TABLE IF NOT EXISTS CONFIGURATIONS (" +
+                            "  id                INTEGER PRIMARY KEY AUTOINCREMENT," +
+                            "  name              TEXT    NOT NULL," +
+                            "  language          TEXT," +
+                            "  source_file       TEXT," +
+                            "  needs_compilation INTEGER NOT NULL DEFAULT 0," +
+                            "  compile_command   TEXT," +
+                            "  compile_args      TEXT," +
+                            "  run_command       TEXT," +
+                            "  run_args          TEXT" +
+                            ")");
 
             // PROJECTS
             stmt.execute(
-                "CREATE TABLE IF NOT EXISTS PROJECTS (" +
-                "  id               INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "  name             TEXT    NOT NULL," +
-                "  configuration_id TEXT," +
-                "  submissions_dir  TEXT," +
-                "  created_at       DATETIME," +
-                "  last_run_at      DATETIME" +
-                ")"
-            );
+                    "CREATE TABLE IF NOT EXISTS PROJECTS (" +
+                            "  id               INTEGER PRIMARY KEY AUTOINCREMENT," +
+                            "  name             TEXT    NOT NULL," +
+                            "  configuration_id TEXT," +
+                            "  submissions_dir  TEXT," +
+                            "  created_at       DATETIME," +
+                            "  last_run_at      DATETIME" +
+                            ")");
 
             // TESTCASES
             stmt.execute(
-                "CREATE TABLE IF NOT EXISTS TESTCASES (" +
-                "  id               INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "  project_id       INTEGER NOT NULL REFERENCES PROJECTS(id) ON DELETE CASCADE," +
-                "  name             TEXT," +
-                "  input_args       TEXT," +
-                "  expected_output  TEXT," +
-                "  created_at       DATETIME" +
-                ")"
-            );
+                    "CREATE TABLE IF NOT EXISTS TESTCASES (" +
+                            "  id               INTEGER PRIMARY KEY AUTOINCREMENT," +
+                            "  project_id       INTEGER NOT NULL REFERENCES PROJECTS(id) ON DELETE CASCADE," +
+                            "  name             TEXT," +
+                            "  input_args       TEXT," +
+                            "  expected_output  TEXT," +
+                            "  created_at       DATETIME" +
+                            ")");
 
             // RESULTS
             stmt.execute(
-                "CREATE TABLE IF NOT EXISTS RESULTS (" +
-                "  id              INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "  project_id      INTEGER," +
-                "  test_case_id    INTEGER," +
-                "  student_id      TEXT    NOT NULL," +
-                "  status          TEXT    NOT NULL," +
-                "  stdout          TEXT," +
-                "  stderr          TEXT," +
-                "  error_message   TEXT," +
-                "  duration_ms     LONG," +
-                "  run_at          DATETIME" +
-                ")"
-            );
+                    "CREATE TABLE IF NOT EXISTS RESULTS (" +
+                            "  id              INTEGER PRIMARY KEY AUTOINCREMENT," +
+                            "  project_id      INTEGER," +
+                            "  test_case_id    INTEGER," +
+                            "  student_id      TEXT    NOT NULL," +
+                            "  status          TEXT    NOT NULL," +
+                            "  stdout          TEXT," +
+                            "  stderr          TEXT," +
+                            "  error_message   TEXT," +
+                            "  duration_ms     LONG," +
+                            "  run_at          DATETIME" +
+                            ")");
         }
     }
 
@@ -173,10 +174,11 @@ public class DatabaseManager {
             " compile_command, compile_args, run_command, run_args)" +
             " VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
         connection.setAutoCommit(false);
-        try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
             bindConfigFields(ps, config);
             ps.executeUpdate();
-            try (ResultSet keys = ps.getGeneratedKeys()) {
+            try (Statement s = connection.createStatement();
+                 ResultSet keys = s.executeQuery("SELECT last_insert_rowid()")) {
                 if (keys.next()) config.setId(keys.getInt(1));
             }
             connection.commit();
@@ -189,10 +191,9 @@ public class DatabaseManager {
     }
 
     private void updateConfiguration(Configuration config) throws SQLException {
-        String sql =
-            "UPDATE CONFIGURATIONS SET name=?, language=?, source_file=?," +
-            " needs_compilation=?, compile_command=?, compile_args=?," +
-            " run_command=?, run_args=? WHERE id=?";
+        String sql = "UPDATE CONFIGURATIONS SET name=?, language=?, source_file=?," +
+                " needs_compilation=?, compile_command=?, compile_args=?," +
+                " run_command=?, run_args=? WHERE id=?";
         connection.setAutoCommit(false);
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             bindConfigFields(ps, config);
@@ -207,7 +208,10 @@ public class DatabaseManager {
         }
     }
 
-    /** Binds all editable fields of a {@link Configuration} onto a PreparedStatement (params 1-8). */
+    /**
+     * Binds all editable fields of a {@link Configuration} onto a PreparedStatement
+     * (params 1-8).
+     */
     private static void bindConfigFields(PreparedStatement ps, Configuration c) throws SQLException {
         ps.setString(1, c.getName());
         ps.setString(2, c.getLanguage());
@@ -228,11 +232,12 @@ public class DatabaseManager {
         connect();
         List<Configuration> list = new ArrayList<>();
         String sql = "SELECT id, name, language, source_file, needs_compilation," +
-                     " compile_command, compile_args, run_command, run_args" +
-                     " FROM CONFIGURATIONS ORDER BY id";
+                " compile_command, compile_args, run_command, run_args" +
+                " FROM CONFIGURATIONS ORDER BY id";
         try (PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) list.add(mapConfiguration(rs));
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next())
+                list.add(mapConfiguration(rs));
         }
         return list;
     }
@@ -290,18 +295,18 @@ public class DatabaseManager {
     }
 
     private void insertProject(Project project) throws SQLException {
-        String sql =
-            "INSERT INTO PROJECTS(name, configuration_id, submissions_dir, created_at, last_run_at)" +
-            " VALUES(?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO PROJECTS(name, configuration_id, submissions_dir, created_at, last_run_at)" +
+                " VALUES(?, ?, ?, ?, ?)";
         connection.setAutoCommit(false);
-        try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, project.getName());
             ps.setString(2, project.getConfigurationId());
             ps.setString(3, project.getSubmissionsDirectory());
             ps.setString(4, toIso(project.getCreatedAt()));
             ps.setString(5, toIso(project.getLastRunAt()));
             ps.executeUpdate();
-            try (ResultSet keys = ps.getGeneratedKeys()) {
+            try (Statement s = connection.createStatement();
+                    ResultSet keys = s.executeQuery("SELECT last_insert_rowid()")) {
                 if (keys.next()) {
                     project.setId(keys.getInt(1));
                 }
@@ -316,9 +321,8 @@ public class DatabaseManager {
     }
 
     private void updateProject(Project project) throws SQLException {
-        String sql =
-            "UPDATE PROJECTS SET name=?, configuration_id=?, submissions_dir=?," +
-            " created_at=?, last_run_at=? WHERE id=?";
+        String sql = "UPDATE PROJECTS SET name=?, configuration_id=?, submissions_dir=?," +
+                " created_at=?, last_run_at=? WHERE id=?";
         connection.setAutoCommit(false);
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, project.getName());
@@ -347,11 +351,12 @@ public class DatabaseManager {
     public synchronized Project loadProject(int id) throws SQLException {
         connect();
         String sql = "SELECT id, name, configuration_id, submissions_dir, created_at, last_run_at" +
-                     " FROM PROJECTS WHERE id=?";
+                " FROM PROJECTS WHERE id=?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) return null;
+                if (!rs.next())
+                    return null;
                 Project p = mapProject(rs);
                 loadTestCasesInto(p);
                 loadResultsInto(p);
@@ -361,7 +366,8 @@ public class DatabaseManager {
     }
 
     /**
-     * Returns all persisted projects, each populated with their test cases and results.
+     * Returns all persisted projects, each populated with their test cases and
+     * results.
      *
      * @throws SQLException on any DB error
      */
@@ -369,9 +375,9 @@ public class DatabaseManager {
         connect();
         List<Project> projects = new ArrayList<>();
         String sql = "SELECT id, name, configuration_id, submissions_dir, created_at, last_run_at" +
-                     " FROM PROJECTS ORDER BY id";
+                " FROM PROJECTS ORDER BY id";
         try (PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 Project p = mapProject(rs);
                 loadTestCasesInto(p);
@@ -413,7 +419,8 @@ public class DatabaseManager {
      * @throws SQLException on any DB error
      */
     public synchronized void saveTestCasesForProject(List<TestCase> testCases) throws SQLException {
-        if (testCases == null || testCases.isEmpty()) return;
+        if (testCases == null || testCases.isEmpty())
+            return;
         int projectId = testCases.get(0).getProjectId();
         connect();
         connection.setAutoCommit(false);
@@ -425,24 +432,20 @@ public class DatabaseManager {
                 del.executeUpdate();
             }
             // Insert new rows
-            String ins =
-                "INSERT INTO TESTCASES(project_id, name, input_args, expected_output, created_at)" +
-                " VALUES(?, ?, ?, ?, ?)";
-            try (PreparedStatement ins_ps = connection.prepareStatement(ins, Statement.RETURN_GENERATED_KEYS)) {
+            String ins = "INSERT INTO TESTCASES(project_id, name, input_args, expected_output, created_at)" +
+                    " VALUES(?, ?, ?, ?, ?)";
+            try (PreparedStatement ins_ps = connection.prepareStatement(ins)) {
                 for (TestCase tc : testCases) {
                     ins_ps.setInt(1, tc.getProjectId());
                     ins_ps.setString(2, tc.getName());
                     ins_ps.setString(3, tc.getInputArgs());
                     ins_ps.setString(4, tc.getExpectedOutputFilePath());
                     ins_ps.setString(5, toIso(tc.getCreatedAt()));
-                    ins_ps.addBatch();
-                }
-                ins_ps.executeBatch();
-                // Back-fill generated ids
-                try (ResultSet keys = ins_ps.getGeneratedKeys()) {
-                    int i = 0;
-                    while (keys.next() && i < testCases.size()) {
-                        testCases.get(i++).setId(keys.getInt(1));
+                    ins_ps.executeUpdate();
+                    try (Statement s = connection.createStatement();
+                            ResultSet keys = s.executeQuery("SELECT last_insert_rowid()")) {
+                        if (keys.next())
+                            tc.setId(keys.getInt(1));
                     }
                 }
             }
@@ -464,7 +467,7 @@ public class DatabaseManager {
         connect();
         List<TestCase> list = new ArrayList<>();
         String sql = "SELECT id, project_id, name, input_args, expected_output, created_at" +
-                     " FROM TESTCASES WHERE project_id=? ORDER BY id";
+                " FROM TESTCASES WHERE project_id=? ORDER BY id";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, projectId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -495,12 +498,11 @@ public class DatabaseManager {
      * @param projectId the owning project's id (use 0 if unknown)
      */
     public synchronized void saveResult(EvaluationResult result, int projectId) {
-        String sql =
-            "INSERT INTO RESULTS(project_id, student_id, status, error_message, duration_ms, run_at)" +
-            " VALUES(?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO RESULTS(project_id, student_id, status, error_message, duration_ms, run_at)" +
+                " VALUES(?, ?, ?, ?, ?, ?)";
         try {
             connect();
-            try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setInt(1, projectId);
                 ps.setString(2, result.getStudentId());
                 ps.setString(3, result.getStatus() != null
@@ -510,8 +512,10 @@ public class DatabaseManager {
                 ps.setLong(5, result.getDurationMs());
                 ps.setString(6, toIso(new Date()));
                 ps.executeUpdate();
-                try (ResultSet keys = ps.getGeneratedKeys()) {
-                    if (keys.next()) result.setId(keys.getInt(1));
+                try (Statement s = connection.createStatement();
+                        ResultSet keys = s.executeQuery("SELECT last_insert_rowid()")) {
+                    if (keys.next())
+                        result.setId(keys.getInt(1));
                 }
             }
         } catch (SQLException e) {
@@ -523,13 +527,13 @@ public class DatabaseManager {
      * Returns all results stored for the given project, ordered by id.
      *
      * @param projectId the owning project's id
-     * @return list of {@link EvaluationResult} (without execution/comparison sub-lists)
+     * @return list of {@link EvaluationResult} (without execution/comparison
+     *         sub-lists)
      */
     public synchronized List<EvaluationResult> getResultsForProject(int projectId) {
         List<EvaluationResult> results = new ArrayList<>();
-        String sql =
-            "SELECT id, student_id, status, error_message, duration_ms" +
-            " FROM RESULTS WHERE project_id=? ORDER BY id";
+        String sql = "SELECT id, student_id, status, error_message, duration_ms" +
+                " FROM RESULTS WHERE project_id=? ORDER BY id";
         try {
             connect();
             try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -540,8 +544,10 @@ public class DatabaseManager {
                         r.setId(rs.getInt("id"));
                         String statusStr = rs.getString("status");
                         if (statusStr != null) {
-                            try { r.setStatus(Status.valueOf(statusStr)); }
-                            catch (IllegalArgumentException ignored) {}
+                            try {
+                                r.setStatus(Status.valueOf(statusStr));
+                            } catch (IllegalArgumentException ignored) {
+                            }
                         }
                         r.setErrorMessage(rs.getString("error_message"));
                         r.setDurationMs(rs.getLong("duration_ms"));
@@ -598,7 +604,8 @@ public class DatabaseManager {
 
     /** Parses an ISO-8601 string to a {@link Date}, or returns {@code null}. */
     private static Date fromIso(String s) {
-        if (s == null || s.isBlank()) return null;
+        if (s == null || s.isBlank())
+            return null;
         try {
             return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(s);
         } catch (java.text.ParseException e) {
