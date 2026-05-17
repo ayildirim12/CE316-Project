@@ -140,7 +140,7 @@ class EvaluationEngineIT {
     /** Returns four pre-built Submission objects (one per edge-case student). */
     private static class FakeSubmissionSource implements SubmissionSource {
         @Override
-        public List<Submission> loadSubmissions(File submissionsDirectory) {
+        public List<Submission> loadSubmissions(File submissionsDirectory, Project project) {
             List<Submission> list = new ArrayList<>();
             for (String id : List.of(CORRECT, WRONG_OUTPUT, BROKEN_SYNTAX, INFINITE_LOOP)) {
                 Submission s = new Submission(id, null, null);
