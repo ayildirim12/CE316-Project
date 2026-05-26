@@ -48,6 +48,7 @@ public class MainWindowController {
     @FXML private Label                   statusLabel;
     @FXML private Label                   envStatusLabel;
     @FXML private Button                  runBtn;
+    @FXML private Button                  lastResultsBtn;
 
     @FXML private Button                  projectsTab;
     @FXML private Button                  submissionsTab;
@@ -75,6 +76,9 @@ public class MainWindowController {
     private Project               currentProject       = null;
     private final ObservableList<String[]> testCaseRows =
             FXCollections.observableArrayList();
+
+    /** Stores the last results view so the user can return to it without re-running. */
+    private javafx.scene.Parent   lastResultsRoot      = null;
 
     /* ── Init ── */
 
@@ -171,6 +175,8 @@ public class MainWindowController {
             testCaseRows.clear();
         }
 
+        lastResultsRoot = null;   // clear stale results when switching projects
+        if (lastResultsBtn != null) { lastResultsBtn.setVisible(false); lastResultsBtn.setManaged(false); }
         projectNameLabel.setText(currentProjectName);
         configBadge.setText(currentConfigName);
         submissionsDirField.setText(submissionsDir);
@@ -209,7 +215,12 @@ public class MainWindowController {
     }
 
     private void removeResultsPane() {
-        mainContentArea.getChildren().removeIf(n -> "resultsView".equals(n.getId()));
+        clearContentArea();
+    }
+
+    private void clearContentArea() {
+        mainContentArea.getChildren()
+                .retainAll(noProjectPane, projectDetailScroll);
     }
 
     /* ── Menu handlers ── */
@@ -444,7 +455,11 @@ public class MainWindowController {
                 progress.close();
                 runBtn.setDisable(false);
                 setStatus("Evaluation complete – " + rows.length + " submission(s) processed.");
-                if (!progress.isCancelled()) openResultsView(rows, tcCount, finalEvalResults);
+                if (!progress.isCancelled()) {
+                    openResultsView(rows, tcCount, finalEvalResults);
+                    lastResultsBtn.setVisible(true);
+                    lastResultsBtn.setManaged(true);
+                }
             });
         });
         worker.setDaemon(true);
@@ -497,9 +512,36 @@ public class MainWindowController {
 
     /* ── Nav tabs ── */
 
-    @FXML private void showProjectsView()    { setActiveTab(projectsTab); }
+    @FXML private void showProjectsView() {
+        setActiveTab(projectsTab);
+        clearContentArea();
+        if (currentProject != null) {
+            showProjectDetailPane();
+        } else {
+            showNoProjectPane();
+        }
+    }
 
-    @FXML private void showSubmissionsView() { showComingSoon("Submissions View", submissionsTab); }
+    @FXML private void showSubmissionsView() {
+        setActiveTab(submissionsTab);
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/iae/fxml/SubmissionsView.fxml"));
+            javafx.scene.Parent root = loader.load();
+            SubmissionsViewController ctrl = loader.getController();
+            ctrl.initProject(currentProject);
+            root.setId("submissionsView");
+            clearContentArea();
+            noProjectPane.setVisible(false);
+            noProjectPane.setManaged(false);
+            projectDetailScroll.setVisible(false);
+            projectDetailScroll.setManaged(false);
+            mainContentArea.getChildren().add(root);
+        } catch (java.io.IOException e) {
+            showError("Could not load Submissions View: " + e.getMessage());
+        }
+    }
+
     @FXML private void showAnalyticsView()   { showComingSoon("Analytics View", analyticsTab); }
     @FXML private void showSettingsView()    { showComingSoon("Settings", settingsTab); }
 
@@ -531,10 +573,19 @@ public class MainWindowController {
             ResultsViewController rvc = loader.getController();
             root.getProperties().put("mainWindowController", this);
             rvc.initData(results, tcCount, evalResults);
+            lastResultsRoot = root;
             showResultsPane(root);
         } catch (IOException e) {
             showError("Could not load Results View: " + e.getMessage());
         }
+    }
+
+    /** Re-displays the most recent results view without re-running the pipeline. */
+    @FXML
+    public void handleViewLastResults() {
+        if (lastResultsRoot == null) return;
+        showResultsPane(lastResultsRoot);
+        setActiveTab(null);
     }
 
     /* ── Simple dialogs for new / open project ── */
