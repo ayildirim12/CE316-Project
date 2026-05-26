@@ -68,6 +68,7 @@
                     <MenuItem text="New Project"    onAction="#handleNewProject"/>
                     <MenuItem text="Open Project"   onAction="#handleOpenProject"/>
                     <MenuItem text="Edit Project"   onAction="#handleEditProject"/>
+                    <MenuItem text="Save Project"   onAction="#handleSaveProject"/>
                     <MenuItem text="Close Project"  onAction="#handleCloseProject"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Delete Project" onAction="#handleDeleteProject"/>

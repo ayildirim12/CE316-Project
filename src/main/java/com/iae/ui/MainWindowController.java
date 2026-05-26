@@ -265,6 +265,19 @@ public class MainWindowController {
         });
     }
 
+    @FXML private void handleSaveProject() {
+        if (currentProject == null) {
+            setStatus("No project to save.");
+            return;
+        }
+        try {
+            ProjectManager.getInstance().saveProject(currentProject);
+            setStatus("Project saved: " + currentProject.getName());
+        } catch (RuntimeException e) {
+            showError("Could not save project: " + e.getMessage());
+        }
+    }
+
     @FXML private void handleCloseProject() {
         currentProjectName = null;
         testCaseRows.clear();
@@ -339,7 +352,37 @@ public class MainWindowController {
                     dlg.setConfiguration(config);
                     dlg.showAndWait();
                     Configuration saved = dlg.getResult();
-                    if (saved != null) setStatus("Configuration updated: " + saved.getName());
+                    if (saved != null) {
+                        // ── Rename guard ──────────────────────────────────────
+                        // If the configuration name changed, find every project
+                        // that references the old name and update it atomically.
+                        String newName = saved.getName();
+                        if (!chosen.equals(newName)) {
+                            List<Project> affected = ProjectManager.getInstance()
+                                    .getAllProjects().stream()
+                                    .filter(p -> chosen.equals(p.getConfigurationId()))
+                                    .toList();
+                            if (!affected.isEmpty()) {
+                                for (Project p : affected) {
+                                    p.setConfigurationId(newName);
+                                    ProjectManager.getInstance().saveProject(p);
+                                }
+                                // Refresh badge if the active project was affected
+                                if (currentProject != null
+                                        && chosen.equals(currentProject.getConfigurationId())) {
+                                    currentProject.setConfigurationId(newName);
+                                    configBadge.setText(newName);
+                                }
+                                setStatus("Configuration renamed: projects updated ("
+                                        + affected.size() + " affected).");
+                            } else {
+                                setStatus("Configuration updated: " + newName);
+                            }
+                        } else {
+                            setStatus("Configuration updated: " + newName);
+                        }
+                        // ─────────────────────────────────────────────────────
+                    }
                 } catch (IOException e) {
                     showError("Could not open Configuration dialog: " + e.getMessage());
                 }
