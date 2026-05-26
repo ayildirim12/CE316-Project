@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.iae.ui.SubmissionsViewController"
+      styleClass="results-pane">
+
+    <!-- ── Header bar ─────────────────────────────────────────────────── -->
+    <HBox styleClass="summary-bar" alignment="CENTER_LEFT" spacing="12">
+        <padding><Insets top="12" right="16" bottom="12" left="16"/></padding>
+
+        <VBox spacing="2">
+            <Label text="SUBMISSIONS" styleClass="field-label"/>
+            <Label fx:id="dirLabel" text="No directory set"
+                   style="-fx-text-fill:#727783; -fx-font-size:12px;"/>
+        </VBox>
+
+        <Pane HBox.hgrow="ALWAYS"/>
+
+        <!-- sync = E627 -->
+        <Button styleClass="secondary-button" onAction="#handleRefresh">
+            <graphic>
+                <Label text="&#xE627;"
+                       style="-fx-font-family:'Material Icons';-fx-font-size:14px;-fx-text-fill:#424752;"/>
+            </graphic>
+            Refresh
+        </Button>
+    </HBox>
+
+    <!-- ── Placeholder: no project / no directory ─────────────────────── -->
+    <!-- folder_open = E2C8 -->
+    <VBox fx:id="placeholderPane" alignment="CENTER" spacing="12" VBox.vgrow="ALWAYS">
+        <Label text="&#xE2C8;" styleClass="placeholder-icon"/>
+        <Label text="No Submissions Directory" styleClass="placeholder-title"/>
+        <Label text="Select a project and set a submissions directory to view ZIP files."
+               styleClass="placeholder-subtitle"/>
+    </VBox>
+
+    <!-- ── Submissions table ──────────────────────────────────────────── -->
+    <TableView fx:id="submissionsTable" styleClass="data-table"
+               VBox.vgrow="ALWAYS" visible="false" managed="false">
+        <columns>
+            <TableColumn fx:id="colStudent"    text="Student ID"        prefWidth="180"/>
+            <TableColumn fx:id="colFile"       text="ZIP File"          prefWidth="220"/>
+            <TableColumn fx:id="colSize"       text="Size"              prefWidth="90"
+                         style="-fx-alignment:CENTER_RIGHT;"/>
+            <TableColumn fx:id="colExtraction" text="Extraction"        prefWidth="110"
+                         style="-fx-alignment:CENTER;"/>
+            <TableColumn fx:id="colEvalStatus" text="Last Eval Status"  prefWidth="150"
+                         style="-fx-alignment:CENTER;"/>
+        </columns>
+        <placeholder>
+            <Label text="No ZIP files found in the submissions directory."
+                   style="-fx-text-fill:#727783; -fx-font-size:12px;"/>
+        </placeholder>
+    </TableView>
+
+</VBox>

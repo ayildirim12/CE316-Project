@@ -42,6 +42,16 @@
 
                 <Separator orientation="VERTICAL" styleClass="toolbar-separator"/>
 
+                <!-- Last Results button (assessment = E85C) — visible only after a run -->
+                <Button fx:id="lastResultsBtn" styleClass="secondary-button"
+                        onAction="#handleViewLastResults"
+                        visible="false" managed="false"
+                        contentDisplay="LEFT">
+                    <graphic><Label text="&#xE85C;" style="-fx-font-family:'Material Icons';-fx-font-size:16px;-fx-text-fill:#424752;"/></graphic>
+                    <HBox.margin><Insets left="8" right="8"/></HBox.margin>
+                    Last Results
+                </Button>
+
                 <!-- Run button (play_arrow = E037) -->
                 <Button fx:id="runBtn" styleClass="primary-button"
                         onAction="#handleRun" disable="true"

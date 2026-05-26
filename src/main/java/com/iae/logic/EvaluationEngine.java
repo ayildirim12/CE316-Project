@@ -77,7 +77,7 @@ public class EvaluationEngine {
             result.setDurationMs(System.currentTimeMillis() - start);
 
             try {
-                databaseManager.saveResult(result);
+                databaseManager.saveResult(result, project.getId());
             } catch (Exception e) {
                 result.setErrorMessage("DB save failed: " + e.getMessage());
             }
