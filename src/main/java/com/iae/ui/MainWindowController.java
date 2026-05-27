@@ -9,6 +9,7 @@ import com.iae.logic.DirectoryScanner;
 import com.iae.logic.EvaluationEngine;
 import com.iae.logic.OutputComparator;
 import com.iae.logic.ProjectManager;
+import com.iae.logic.PipelineExecutor;
 import com.iae.model.ComparisonResult;
 import com.iae.model.Configuration;
 import com.iae.model.EvaluationResult;
@@ -47,6 +48,7 @@ public class MainWindowController {
     @FXML private StackPane               mainContentArea;
     @FXML private Label                   statusLabel;
     @FXML private Label                   envStatusLabel;
+    @FXML private Label                   backgroundTasksLabel;
     @FXML private Button                  runBtn;
     @FXML private Button                  lastResultsBtn;
 
@@ -79,6 +81,8 @@ public class MainWindowController {
 
     /** Stores the last results view so the user can return to it without re-running. */
     private javafx.scene.Parent   lastResultsRoot      = null;
+    private PipelineExecutor      pipelineExecutor;
+    private int                   activeBackgroundTasks = 0;
 
     /* ── Init ── */
 
@@ -88,6 +92,23 @@ public class MainWindowController {
         buildTestCasesTable();
         showNoProjectPane();
         setActiveTab(projectsTab);
+        if (backgroundTasksLabel != null) {
+            backgroundTasksLabel.setText("Background Tasks: 0");
+        }
+
+        // Register F9 keyboard shortcut
+        statusLabel.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.getAccelerators().put(
+                    new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F9),
+                    () -> {
+                        if (!runBtn.isDisable()) {
+                            handleRun(null);
+                        }
+                    }
+                );
+            }
+        });
     }
 
     /* ── Sidebar ── */
@@ -454,6 +475,11 @@ public class MainWindowController {
             return;
         }
 
+        if (pipelineExecutor != null && pipelineExecutor.isRunning()) {
+            showError("An evaluation is already in progress.");
+            return;
+        }
+
         String cfgId = currentProject.getConfigurationId();
         Configuration config = (cfgId != null)
                 ? ConfigurationManager.getInstance().findByName(cfgId).orElse(null)
@@ -473,6 +499,25 @@ public class MainWindowController {
             showError("Could not open progress dialog: " + e.getMessage());
             return;
         }
+
+        EvaluationEngine engine = new EvaluationEngine(
+                new DirectoryScanner(),
+                new DefaultCompiler(),
+                new DefaultExecutor(10_000),
+                new OutputComparator(),
+                DatabaseManager.getInstance(),
+                progress,
+                10_000
+        );
+
+        pipelineExecutor = new PipelineExecutor(engine);
+
+        progress.setOnCancel(() -> {
+            if (pipelineExecutor != null) {
+                pipelineExecutor.cancel();
+            }
+        });
+
         progress.show();
         runBtn.setDisable(true);
         setStatus("Running evaluation…");
@@ -481,20 +526,13 @@ public class MainWindowController {
         Project projectSnapshot = currentProject;
         Configuration configSnapshot = config;
 
-        Thread worker = new Thread(() -> {
-            EvaluationEngine engine = new EvaluationEngine(
-                    new DirectoryScanner(),
-                    new DefaultCompiler(),
-                    new DefaultExecutor(10_000),
-                    new OutputComparator(),
-                    DatabaseManager.getInstance(),
-                    progress,
-                    10_000
-            );
+        java.util.concurrent.Future<List<EvaluationResult>> future = pipelineExecutor.submit(projectSnapshot, configSnapshot);
 
+        Thread watcher = new Thread(() -> {
+            updateBackgroundTasksCount(1);
             List<EvaluationResult> evalResults;
             try {
-                evalResults = engine.runProject(projectSnapshot, configSnapshot);
+                evalResults = future.get();
             } catch (Exception ex) {
                 Platform.runLater(() -> {
                     progress.close();
@@ -502,6 +540,7 @@ public class MainWindowController {
                     showError("Evaluation error: " + ex.getMessage());
                     setStatus("Evaluation failed.");
                 });
+                updateBackgroundTasksCount(-1);
                 return;
             }
 
@@ -518,9 +557,20 @@ public class MainWindowController {
                     lastResultsBtn.setManaged(true);
                 }
             });
+            updateBackgroundTasksCount(-1);
         });
-        worker.setDaemon(true);
-        worker.start();
+        watcher.setDaemon(true);
+        watcher.start();
+    }
+
+    private void updateBackgroundTasksCount(int delta) {
+        Platform.runLater(() -> {
+            activeBackgroundTasks += delta;
+            if (activeBackgroundTasks < 0) activeBackgroundTasks = 0;
+            if (backgroundTasksLabel != null) {
+                backgroundTasksLabel.setText("Background Tasks: " + activeBackgroundTasks);
+            }
+        });
     }
 
     /* ── Browse submissions directory ── */
