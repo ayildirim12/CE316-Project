@@ -1,7 +1,7 @@
 package com.iae.ui;
 
-import com.iae.logic.CodeRunner;
 import com.iae.logic.Compiler;
+import com.iae.logic.DefaultExecutor;
 import com.iae.logic.DefaultCompiler;
 import com.iae.logic.ConfigurationManager;
 import com.iae.logic.DatabaseManager;
@@ -123,12 +123,26 @@ public class MainWindowController {
         /* Input Arguments */
         tcInputCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue()[0]));
         tcInputCol.setCellFactory(javafx.scene.control.cell.TextFieldTableCell.forTableColumn());
-        tcInputCol.setOnEditCommit(e -> e.getRowValue()[0] = e.getNewValue());
+        tcInputCol.setOnEditCommit(e -> {
+            e.getRowValue()[0] = e.getNewValue();
+            int idx = testCasesTable.getItems().indexOf(e.getRowValue());
+            if (currentProject != null && idx >= 0 && idx < currentProject.getTestCases().size()) {
+                currentProject.getTestCases().get(idx).setInputArgs(e.getNewValue());
+                saveCurrentProject();
+            }
+        });
 
         /* Expected Output File */
         tcOutputCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue()[1]));
         tcOutputCol.setCellFactory(javafx.scene.control.cell.TextFieldTableCell.forTableColumn());
-        tcOutputCol.setOnEditCommit(e -> e.getRowValue()[1] = e.getNewValue());
+        tcOutputCol.setOnEditCommit(e -> {
+            e.getRowValue()[1] = e.getNewValue();
+            int idx = testCasesTable.getItems().indexOf(e.getRowValue());
+            if (currentProject != null && idx >= 0 && idx < currentProject.getTestCases().size()) {
+                currentProject.getTestCases().get(idx).setExpectedOutputFilePath(e.getNewValue());
+                saveCurrentProject();
+            }
+        });
 
         /* Actions column – delete button */
         tcActionCol.setCellFactory(col -> new TableCell<>() {
@@ -471,7 +485,7 @@ public class MainWindowController {
             EvaluationEngine engine = new EvaluationEngine(
                     new DirectoryScanner(),
                     new DefaultCompiler(),
-                    new CodeRunner(),
+                    new DefaultExecutor(10_000),
                     new OutputComparator(),
                     DatabaseManager.getInstance(),
                     progress,
