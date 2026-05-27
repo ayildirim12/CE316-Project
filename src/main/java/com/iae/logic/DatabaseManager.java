@@ -2,6 +2,7 @@ package com.iae.logic;
 
 import com.iae.model.Configuration;
 import com.iae.model.EvaluationResult;
+import com.iae.model.ExecutionResult;
 import com.iae.model.Project;
 import com.iae.model.Status;
 import com.iae.model.TestCase;
@@ -96,6 +97,11 @@ public class DatabaseManager {
     // ── Schema ────────────────────────────────────────────────────────────────
 
     private void initSchema(Connection conn) throws SQLException {
+        createTables(conn);
+        applyMigrations(conn);
+    }
+
+    private void createTables(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
 
             // CONFIGURATIONS
@@ -134,11 +140,11 @@ public class DatabaseManager {
                             "  created_at       DATETIME" +
                             ")");
 
-            // RESULTS
+            // RESULTS – new installations get the FK constraint directly
             stmt.execute(
                     "CREATE TABLE IF NOT EXISTS RESULTS (" +
                             "  id              INTEGER PRIMARY KEY AUTOINCREMENT," +
-                            "  project_id      INTEGER," +
+                            "  project_id      INTEGER  REFERENCES PROJECTS(id) ON DELETE CASCADE," +
                             "  test_case_id    INTEGER," +
                             "  student_id      TEXT    NOT NULL," +
                             "  status          TEXT    NOT NULL," +
@@ -148,6 +154,51 @@ public class DatabaseManager {
                             "  duration_ms     LONG," +
                             "  run_at          DATETIME" +
                             ")");
+        }
+    }
+
+    // Runs pending schema upgrades keyed by PRAGMA user_version.
+    private void applyMigrations(Connection conn) throws SQLException {
+        int version;
+        try (ResultSet rs = conn.createStatement().executeQuery("PRAGMA user_version")) {
+            version = rs.getInt(1);
+        }
+        if (version < 1) {
+            migrateV0toV1(conn);
+            conn.createStatement().execute("PRAGMA user_version = 1");
+        }
+    }
+
+    // v0 → v1: rebuild RESULTS with ON DELETE CASCADE on project_id.
+    // SQLite does not support ALTER TABLE ADD CONSTRAINT, so the table is
+    // recreated and data copied before the old table is dropped.
+    private void migrateV0toV1(Connection conn) throws SQLException {
+        conn.setAutoCommit(false);
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("PRAGMA foreign_keys = OFF");
+            stmt.execute(
+                    "CREATE TABLE RESULTS_v1 (" +
+                            "  id              INTEGER PRIMARY KEY AUTOINCREMENT," +
+                            "  project_id      INTEGER  REFERENCES PROJECTS(id) ON DELETE CASCADE," +
+                            "  test_case_id    INTEGER," +
+                            "  student_id      TEXT    NOT NULL," +
+                            "  status          TEXT    NOT NULL," +
+                            "  stdout          TEXT," +
+                            "  stderr          TEXT," +
+                            "  error_message   TEXT," +
+                            "  duration_ms     LONG," +
+                            "  run_at          DATETIME" +
+                            ")");
+            stmt.execute("INSERT INTO RESULTS_v1 SELECT * FROM RESULTS");
+            stmt.execute("DROP TABLE RESULTS");
+            stmt.execute("ALTER TABLE RESULTS_v1 RENAME TO RESULTS");
+            conn.commit();
+            stmt.execute("PRAGMA foreign_keys = ON");
+        } catch (SQLException e) {
+            conn.rollback();
+            throw e;
+        } finally {
+            conn.setAutoCommit(true);
         }
     }
 
@@ -498,19 +549,39 @@ public class DatabaseManager {
      * @param projectId the owning project's id (use 0 if unknown)
      */
     public synchronized void saveResult(EvaluationResult result, int projectId) {
-        String sql = "INSERT INTO RESULTS(project_id, student_id, status, error_message, duration_ms, run_at)" +
-                " VALUES(?, ?, ?, ?, ?, ?)";
+        String stdout = result.getExecutionResults().stream()
+                .map(ExecutionResult::getStdout)
+                .filter(s -> s != null && !s.isBlank())
+                .collect(java.util.stream.Collectors.joining("\n"));
+        String stderr = result.getExecutionResults().stream()
+                .map(ExecutionResult::getStderr)
+                .filter(s -> s != null && !s.isBlank())
+                .collect(java.util.stream.Collectors.joining("\n"));
+        saveResult(result, projectId, 0,
+                stdout.isEmpty() ? null : stdout,
+                stderr.isEmpty() ? null : stderr);
+    }
+
+    public synchronized void saveResult(EvaluationResult result, int projectId,
+                                        int testCaseId, String stdout, String stderr) {
+        String sql = "INSERT INTO RESULTS(project_id, test_case_id, student_id, status," +
+                " stdout, stderr, error_message, duration_ms, run_at)" +
+                " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try {
             connect();
             try (PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setInt(1, projectId);
-                ps.setString(2, result.getStudentId());
-                ps.setString(3, result.getStatus() != null
+                if (testCaseId > 0) ps.setInt(2, testCaseId);
+                else ps.setNull(2, Types.INTEGER);
+                ps.setString(3, result.getStudentId());
+                ps.setString(4, result.getStatus() != null
                         ? result.getStatus().name()
                         : Status.SOURCE_MISSING.name());
-                ps.setString(4, result.getErrorMessage());
-                ps.setLong(5, result.getDurationMs());
-                ps.setString(6, toIso(new Date()));
+                ps.setString(5, stdout);
+                ps.setString(6, stderr);
+                ps.setString(7, result.getErrorMessage());
+                ps.setLong(8, result.getDurationMs());
+                ps.setString(9, toIso(new Date()));
                 ps.executeUpdate();
                 try (Statement s = connection.createStatement();
                         ResultSet keys = s.executeQuery("SELECT last_insert_rowid()")) {

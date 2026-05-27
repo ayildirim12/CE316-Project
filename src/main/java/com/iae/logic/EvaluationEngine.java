@@ -71,7 +71,7 @@ public class EvaluationEngine {
             boolean canExecute = evaluateCompilePhase(submission, config, result);
 
             if (canExecute) {
-                evaluateExecutionPhase(submission, config, project.getTestCases(), result, baseDir);
+                evaluateExecutionPhase(submission, config, project.getTestCases(), result, baseDir, project.getId());
             }
 
             result.setDurationMs(System.currentTimeMillis() - start);
@@ -123,11 +123,13 @@ public class EvaluationEngine {
                                         Configuration config,
                                         List<TestCase> testCases,
                                         EvaluationResult result,
-                                        File baseDir) {
+                                        File baseDir,
+                                        int projectId) {
         Status worstStatus = Status.SUCCESS;
 
         for (TestCase tc : testCases) {
             ExecutionResult er = null;
+            Status tcStatus = Status.RUNTIME_ERROR;
 
             try {
                 er = executor.execute(submission, config, tc);
@@ -135,16 +137,22 @@ public class EvaluationEngine {
             } catch (Exception e) {
                 worstStatus = dominantStatus(worstStatus, Status.RUNTIME_ERROR);
                 result.setErrorMessage("Executor exception: " + e.getMessage());
+                savePerTestCaseResult(projectId, tc, result, Status.RUNTIME_ERROR, null, null, 0);
                 continue;
             }
 
             if (er.isTimedOut()) {
                 worstStatus = dominantStatus(worstStatus, Status.TIMEOUT);
+                savePerTestCaseResult(projectId, tc, result, Status.TIMEOUT,
+                        er.getStdout(), er.getStderr(), er.getDurationMs());
                 continue;
             }
 
             if (!er.isSuccess()) {
                 worstStatus = dominantStatus(worstStatus, Status.RUNTIME_ERROR);
+                tcStatus = Status.RUNTIME_ERROR;
+            } else {
+                tcStatus = Status.SUCCESS;
             }
 
             try {
@@ -153,13 +161,25 @@ public class EvaluationEngine {
                 result.addComparisonResult(cr);
                 if (!cr.isMatch()) {
                     worstStatus = dominantStatus(worstStatus, Status.WRONG_OUTPUT);
+                    tcStatus = Status.WRONG_OUTPUT;
                 }
             } catch (Exception e) {
                 result.setErrorMessage("Comparator exception: " + e.getMessage());
             }
+
+            savePerTestCaseResult(projectId, tc, result, tcStatus,
+                    er.getStdout(), er.getStderr(), er.getDurationMs());
         }
 
         result.setStatus(worstStatus);
+    }
+
+    private void savePerTestCaseResult(int projectId, TestCase tc, EvaluationResult parent,
+                                       Status status, String stdout, String stderr, long durationMs) {
+        EvaluationResult tcResult = new EvaluationResult(parent.getStudentId());
+        tcResult.setStatus(status);
+        tcResult.setDurationMs(durationMs);
+        databaseManager.saveResult(tcResult, projectId, tc.getId(), stdout, stderr);
     }
 
     private static String resolveExpectedPath(String path, File baseDir) {
