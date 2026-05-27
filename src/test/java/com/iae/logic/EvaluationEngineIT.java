@@ -207,6 +207,19 @@ class EvaluationEngineIT {
         }
 
         @Override
+        public void saveResult(EvaluationResult result, int projectId) {
+            store.add(result);
+        }
+
+        @Override
+        public void saveResult(EvaluationResult result, int projectId,
+                               int testCaseId, String stdout, String stderr) {
+            if (testCaseId == 0) {
+                store.add(result);
+            }
+        }
+
+        @Override
         public List<EvaluationResult> getResultsForProject(int projectId) {
             return new ArrayList<>(store);
         }
