@@ -88,6 +88,17 @@ public class EvaluationEngine {
                 progressListener.onProgress(i + 1, total, studentId);
         }
 
+        if (!cancelled) {
+            project.setLastRunAt(new java.util.Date());
+            try {
+                if (databaseManager == DatabaseManager.getInstance()) {
+                    ProjectManager.getInstance().saveProject(project);
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to update last_run_at: " + e.getMessage());
+            }
+        }
+
         if (progressListener != null) progressListener.onComplete();
         return results;
     }
