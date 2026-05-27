@@ -65,10 +65,10 @@
             <!-- Menu bar -->
             <MenuBar styleClass="menu-bar">
                 <Menu text="File">
-                    <MenuItem text="New Project"    onAction="#handleNewProject"/>
-                    <MenuItem text="Open Project"   onAction="#handleOpenProject"/>
+                    <MenuItem text="New Project" accelerator="Shortcut+N"   onAction="#handleNewProject"/>
+                    <MenuItem text="Open Project" accelerator="Shortcut+O"  onAction="#handleOpenProject"/>
                     <MenuItem text="Edit Project"   onAction="#handleEditProject"/>
-                    <MenuItem text="Save Project"   onAction="#handleSaveProject"/>
+                    <MenuItem text="Save Project" accelerator="Shortcut+S"  onAction="#handleSaveProject"/>
                     <MenuItem text="Close Project"  onAction="#handleCloseProject"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Delete Project" onAction="#handleDeleteProject"/>
@@ -251,7 +251,7 @@
             <Label fx:id="statusLabel" text="System Ready" styleClass="status-text"/>
             <Label text="  |  " styleClass="status-sep"/>
             <Label text="&#xE627;" styleClass="status-icon" style="-fx-text-fill:#727783;"/>
-            <Label text="Background Tasks" styleClass="status-text"/>
+            <Label fx:id="backgroundTasksLabel" text="Background Tasks" styleClass="status-text"/>
             <Pane HBox.hgrow="ALWAYS"/>
             <Label text="&#xE875;" styleClass="status-icon" style="-fx-text-fill:#727783;"/>
             <Label fx:id="envStatusLabel" text="Environment: Java 17" styleClass="status-text"/>
