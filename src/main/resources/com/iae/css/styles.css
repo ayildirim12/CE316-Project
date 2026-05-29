@@ -454,3 +454,75 @@
 .status-text { -fx-font-family: 'Inter'; -fx-font-size: 12px; -fx-text-fill: #424752; }
 .status-ok   { -fx-text-fill: #1a7a34; }
 .status-sep  { -fx-text-fill: #c2c6d4; -fx-font-size: 14px; }
+
+
+/* ANALYTICS VIEW */
+
+.analytics-view {
+    -fx-background-color: #f5f6fa;
+}
+
+.view-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.section-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #7f8c8d;
+    -fx-padding: 8 0 4 0;
+}
+
+.stat-card {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-padding: 16;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);
+    -fx-spacing: 4;
+}
+
+.stat-card-pass {
+    -fx-border-color: #27ae60;
+    -fx-border-width: 0 0 0 4;
+    -fx-border-radius: 0 8 8 0;
+}
+
+.stat-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #95a5a6;
+    -fx-font-weight: bold;
+}
+
+.stat-value {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.stat-value-pass {
+    -fx-text-fill: #27ae60;
+}
+
+.analytics-table {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);
+}
+
+.analytics-table .column-header {
+    -fx-background-color: #f8f9fa;
+    -fx-font-weight: bold;
+    -fx-text-fill: #555;
+}
+
+.analytics-table .table-row-cell:hover {
+    -fx-background-color: #eaf4fb;
+}
+
+.table-placeholder {
+    -fx-text-fill: #aaa;
+    -fx-font-style: italic;
+}
+
