@@ -92,6 +92,7 @@ public class MainWindowController {
     private TableColumn<String[], String> tcActionCol;
 
     /* ── UI state ── */
+<<<<<<< Updated upstream
     private Button activeTab = null;
     private String currentProjectName = null;
     private String currentConfigName = null;
@@ -105,6 +106,16 @@ public class MainWindowController {
     private javafx.scene.Parent lastResultsRoot = null;
     private PipelineExecutor pipelineExecutor;
     private int activeBackgroundTasks = 0;
+=======
+    private Button                activeTab            = null;
+    private String                currentProjectName   = null;
+    private String                currentConfigName    = null;
+    private String                submissionsDir       = null;
+    private Project               currentProject       = null;
+    private AnalyticsViewController analyticsController = null;
+    private final ObservableList<String[]> testCaseRows =
+            FXCollections.observableArrayList();
+>>>>>>> Stashed changes
 
     /* ── Init ── */
 
@@ -628,11 +639,16 @@ public class MainWindowController {
                 progress.close();
                 runBtn.setDisable(false);
                 setStatus("Evaluation complete – " + rows.length + " submission(s) processed.");
+<<<<<<< Updated upstream
                 if (!progress.isCancelled()) {
                     openResultsView(rows, tcCount, finalEvalResults);
                     lastResultsBtn.setVisible(true);
                     lastResultsBtn.setManaged(true);
                 }
+=======
+                if (!progress.isCancelled()) openResultsView(rows, tcCount, finalEvalResults);
+                if (analyticsController != null) analyticsController.refresh();
+>>>>>>> Stashed changes
             });
             updateBackgroundTasksCount(-1);
         });
@@ -709,6 +725,7 @@ public class MainWindowController {
         }
     }
 
+<<<<<<< Updated upstream
     @FXML
     private void showSubmissionsView() {
         setActiveTab(submissionsTab);
@@ -753,6 +770,29 @@ public class MainWindowController {
             showError("Could not load Settings view: " + e.getMessage());
         }
     }
+=======
+    @FXML private void showSubmissionsView() { showComingSoon("Submissions View", submissionsTab); }
+    @FXML private void showSettingsView()    { showComingSoon("Settings", settingsTab); }
+>>>>>>> Stashed changes
+
+
+
+
+    @FXML private void showAnalyticsView() {
+        setActiveTab(analyticsTab);
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/com/iae/ui/AnalyticsView.fxml"));
+            Parent view = loader.load();
+            analyticsController = loader.getController(); // ← correct field, not analyticsTab
+            mainContentArea.getChildren().setAll(view);
+        } catch (IOException e) {
+            e.printStackTrace();
+            showError("Could not load Analytics View: " + e.getMessage());
+        }
+    }
+
+    
 
     private void showComingSoon(String feature, Button tab) {
         setActiveTab(tab);
