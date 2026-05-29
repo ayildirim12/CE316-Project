@@ -1,7 +1,7 @@
 package com.iae.ui;
 
-import com.iae.logic.CodeRunner;
 import com.iae.logic.Compiler;
+import com.iae.logic.DefaultExecutor;
 import com.iae.logic.DefaultCompiler;
 import com.iae.logic.ConfigurationManager;
 import com.iae.logic.DatabaseManager;
@@ -9,6 +9,7 @@ import com.iae.logic.DirectoryScanner;
 import com.iae.logic.EvaluationEngine;
 import com.iae.logic.OutputComparator;
 import com.iae.logic.ProjectManager;
+import com.iae.logic.PipelineExecutor;
 import com.iae.model.ComparisonResult;
 import com.iae.model.Configuration;
 import com.iae.model.EvaluationResult;
@@ -43,38 +44,67 @@ import java.util.List;
 public class MainWindowController {
 
     /* ── FXML ── */
-    @FXML private TreeView<String>        projectTreeView;
-    @FXML private StackPane               mainContentArea;
-    @FXML private Label                   statusLabel;
-    @FXML private Label                   envStatusLabel;
-    @FXML private Button                  runBtn;
+    @FXML
+    private TreeView<String> projectTreeView;
+    @FXML
+    private StackPane mainContentArea;
+    @FXML
+    private Label statusLabel;
+    @FXML
+    private Label envStatusLabel;
+    @FXML
+    private Label backgroundTasksLabel;
+    @FXML
+    private Button runBtn;
+    @FXML
+    private Button lastResultsBtn;
 
-    @FXML private Button                  projectsTab;
-    @FXML private Button                  submissionsTab;
-    @FXML private Button                  analyticsTab;
-    @FXML private Button                  settingsTab;
+    @FXML
+    private Button projectsTab;
+    @FXML
+    private Button submissionsTab;
+    @FXML
+    private Button analyticsTab;
+    @FXML
+    private Button settingsTab;
 
-    @FXML private VBox                    noProjectPane;
-    @FXML private ScrollPane              projectDetailScroll;
-    @FXML private Label                   projectNameLabel;
-    @FXML private Label                   configBadge;
-    @FXML private TextField               submissionsDirField;
+    @FXML
+    private VBox noProjectPane;
+    @FXML
+    private ScrollPane projectDetailScroll;
+    @FXML
+    private Label projectNameLabel;
+    @FXML
+    private Label configBadge;
+    @FXML
+    private TextField submissionsDirField;
 
     /* Test-cases table – each row is String[]{ inputArgs, expectedOutputFile } */
-    @FXML private TableView<String[]>            testCasesTable;
-    @FXML private TableColumn<String[], String>  tcNumCol;
-    @FXML private TableColumn<String[], String>  tcInputCol;
-    @FXML private TableColumn<String[], String>  tcOutputCol;
-    @FXML private TableColumn<String[], String>  tcActionCol;
+    @FXML
+    private TableView<String[]> testCasesTable;
+    @FXML
+    private TableColumn<String[], String> tcNumCol;
+    @FXML
+    private TableColumn<String[], String> tcInputCol;
+    @FXML
+    private TableColumn<String[], String> tcOutputCol;
+    @FXML
+    private TableColumn<String[], String> tcActionCol;
 
     /* ── UI state ── */
-    private Button                activeTab            = null;
-    private String                currentProjectName   = null;
-    private String                currentConfigName    = null;
-    private String                submissionsDir       = null;
-    private Project               currentProject       = null;
-    private final ObservableList<String[]> testCaseRows =
-            FXCollections.observableArrayList();
+    private Button activeTab = null;
+    private String currentProjectName = null;
+    private String currentConfigName = null;
+    private String submissionsDir = null;
+    private Project currentProject = null;
+    private final ObservableList<String[]> testCaseRows = FXCollections.observableArrayList();
+
+    /**
+     * Stores the last results view so the user can return to it without re-running.
+     */
+    private javafx.scene.Parent lastResultsRoot = null;
+    private PipelineExecutor pipelineExecutor;
+    private int activeBackgroundTasks = 0;
 
     /* ── Init ── */
 
@@ -84,6 +114,22 @@ public class MainWindowController {
         buildTestCasesTable();
         showNoProjectPane();
         setActiveTab(projectsTab);
+        if (backgroundTasksLabel != null) {
+            backgroundTasksLabel.setText("Background Tasks: 0");
+        }
+
+        // Register F9 keyboard shortcut
+        statusLabel.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.getAccelerators().put(
+                        new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F9),
+                        () -> {
+                            if (!runBtn.isDisable()) {
+                                handleRun(null);
+                            }
+                        });
+            }
+        });
     }
 
     /* ── Sidebar ── */
@@ -119,26 +165,44 @@ public class MainWindowController {
         /* Input Arguments */
         tcInputCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue()[0]));
         tcInputCol.setCellFactory(javafx.scene.control.cell.TextFieldTableCell.forTableColumn());
-        tcInputCol.setOnEditCommit(e -> e.getRowValue()[0] = e.getNewValue());
+        tcInputCol.setOnEditCommit(e -> {
+            e.getRowValue()[0] = e.getNewValue();
+            int idx = testCasesTable.getItems().indexOf(e.getRowValue());
+            if (currentProject != null && idx >= 0 && idx < currentProject.getTestCases().size()) {
+                currentProject.getTestCases().get(idx).setInputArgs(e.getNewValue());
+                saveCurrentProject();
+            }
+        });
 
         /* Expected Output File */
         tcOutputCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue()[1]));
         tcOutputCol.setCellFactory(javafx.scene.control.cell.TextFieldTableCell.forTableColumn());
-        tcOutputCol.setOnEditCommit(e -> e.getRowValue()[1] = e.getNewValue());
+        tcOutputCol.setOnEditCommit(e -> {
+            e.getRowValue()[1] = e.getNewValue();
+            int idx = testCasesTable.getItems().indexOf(e.getRowValue());
+            if (currentProject != null && idx >= 0 && idx < currentProject.getTestCases().size()) {
+                currentProject.getTestCases().get(idx).setExpectedOutputFilePath(e.getNewValue());
+                saveCurrentProject();
+            }
+        });
 
         /* Actions column – delete button */
         tcActionCol.setCellFactory(col -> new TableCell<>() {
             private final Button del = new Button("✕");
-            { del.getStyleClass().add("ghost-button");
-              del.setOnAction(e -> {
-                  int idx = getIndex();
-                  testCaseRows.remove(idx);
-                  if (currentProject != null && idx < currentProject.getTestCases().size()) {
-                      currentProject.getTestCases().remove(idx);
-                      saveCurrentProject();
-                  }
-              }); }
-            @Override protected void updateItem(String item, boolean empty) {
+            {
+                del.getStyleClass().add("ghost-button");
+                del.setOnAction(e -> {
+                    int idx = getIndex();
+                    testCaseRows.remove(idx);
+                    if (currentProject != null && idx < currentProject.getTestCases().size()) {
+                        currentProject.getTestCases().remove(idx);
+                        saveCurrentProject();
+                    }
+                });
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 setGraphic(empty ? null : del);
                 setText(null);
@@ -155,22 +219,41 @@ public class MainWindowController {
         if (p != null) {
             currentProject = p;
             submissionsDir = nullSafe(p.getSubmissionsDirectory());
+
+            // ── Settings pref fallback ────────────────────────────────────────
+            // If the project has no submissions directory stored, apply the
+            // global default from Settings so the Submissions tab shows the
+            // correct directory without the user needing to re-select it.
+            if (submissionsDir.isBlank()) {
+                String prefDir = SettingsViewController.getDefaultSubmissionsDir();
+                if (!prefDir.isBlank()) {
+                    submissionsDir = prefDir;
+                    currentProject.setSubmissionsDirectory(submissionsDir);
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────
+
             currentConfigName = ConfigurationManager.getInstance()
                     .findByName(p.getConfigurationId())
                     .map(Configuration::getName)
                     .orElse("(none)");
             testCaseRows.setAll(p.getTestCases().stream()
-                    .map(tc -> new String[]{
+                    .map(tc -> new String[] {
                             nullSafe(tc.getInputArgs()),
-                            nullSafe(tc.getExpectedOutputFilePath())})
+                            nullSafe(tc.getExpectedOutputFilePath()) })
                     .toList());
         } else {
-            currentProject    = null;
+            currentProject = null;
             currentConfigName = "(none)";
-            submissionsDir    = "";
+            submissionsDir = "";
             testCaseRows.clear();
         }
 
+        lastResultsRoot = null; // clear stale results when switching projects
+        if (lastResultsBtn != null) {
+            lastResultsBtn.setVisible(false);
+            lastResultsBtn.setManaged(false);
+        }
         projectNameLabel.setText(currentProjectName);
         configBadge.setText(currentConfigName);
         submissionsDirField.setText(submissionsDir);
@@ -178,6 +261,7 @@ public class MainWindowController {
         showProjectDetailPane();
         setStatus("Loaded: " + name);
     }
+
 
     /* ── Visibility helpers ── */
 
@@ -209,14 +293,28 @@ public class MainWindowController {
     }
 
     private void removeResultsPane() {
-        mainContentArea.getChildren().removeIf(n -> "resultsView".equals(n.getId()));
+        clearContentArea();
+    }
+
+    private void clearContentArea() {
+        mainContentArea.getChildren()
+                .retainAll(noProjectPane, projectDetailScroll);
     }
 
     /* ── Menu handlers ── */
 
-    @FXML private void handleNewProject()  { promptNewProject(); }
-    @FXML private void handleOpenProject() { promptOpenProject(); }
-    @FXML private void handleEditProject() {
+    @FXML
+    private void handleNewProject() {
+        promptNewProject();
+    }
+
+    @FXML
+    private void handleOpenProject() {
+        promptOpenProject();
+    }
+
+    @FXML
+    private void handleEditProject() {
         List<Project> all = ProjectManager.getInstance().getAllProjects();
         if (all.isEmpty()) {
             showError("No projects found. Create one first.");
@@ -244,7 +342,8 @@ public class MainWindowController {
                                 break;
                             }
                         }
-                        if (chosen.equals(currentProjectName)) loadProjectByName(saved.getName());
+                        if (chosen.equals(currentProjectName))
+                            loadProjectByName(saved.getName());
                         setStatus("Project updated: " + saved.getName());
                     }
                 } catch (IOException e) {
@@ -254,14 +353,30 @@ public class MainWindowController {
         });
     }
 
-    @FXML private void handleCloseProject() {
+    @FXML
+    private void handleSaveProject() {
+        if (currentProject == null) {
+            setStatus("No project to save.");
+            return;
+        }
+        try {
+            ProjectManager.getInstance().saveProject(currentProject);
+            setStatus("Project saved: " + currentProject.getName());
+        } catch (RuntimeException e) {
+            showError("Could not save project: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void handleCloseProject() {
         currentProjectName = null;
         testCaseRows.clear();
         showNoProjectPane();
         setStatus("Project closed.");
     }
 
-    @FXML private void handleDeleteProject() {
+    @FXML
+    private void handleDeleteProject() {
         List<Project> all = ProjectManager.getInstance().getAllProjects();
         if (all.isEmpty()) {
             showError("No projects found.");
@@ -274,7 +389,8 @@ public class MainWindowController {
         pick.setContentText("Project:");
         pick.showAndWait().ifPresent(chosen -> {
             Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
-                    "Are you sure you want to delete \"" + chosen + "\"?\nAll test cases and results will also be deleted.",
+                    "Are you sure you want to delete \"" + chosen
+                            + "\"?\nAll test cases and results will also be deleted.",
                     ButtonType.YES, ButtonType.NO);
             confirm.setHeaderText("Delete Project");
             confirm.showAndWait().ifPresent(btn -> {
@@ -295,21 +411,28 @@ public class MainWindowController {
             });
         });
     }
-    @FXML private void handleExit() { Platform.exit(); }
 
-    @FXML private void handleNewConfiguration() {
+    @FXML
+    private void handleExit() {
+        Platform.exit();
+    }
+
+    @FXML
+    private void handleNewConfiguration() {
         try {
             Window owner = mainContentArea.getScene().getWindow();
             ConfigurationDialogController dlg = ConfigurationDialogController.create(owner);
             dlg.showAndWait();
             Configuration saved = dlg.getResult();
-            if (saved != null) setStatus("Configuration saved: " + saved.getName());
+            if (saved != null)
+                setStatus("Configuration saved: " + saved.getName());
         } catch (IOException e) {
             showError("Could not open Configuration dialog: " + e.getMessage());
         }
     }
 
-    @FXML private void handleEditConfiguration() {
+    @FXML
+    private void handleEditConfiguration() {
         List<Configuration> all = ConfigurationManager.getInstance().findAll();
         if (all.isEmpty()) {
             showError("No configurations found. Create one first.");
@@ -328,7 +451,37 @@ public class MainWindowController {
                     dlg.setConfiguration(config);
                     dlg.showAndWait();
                     Configuration saved = dlg.getResult();
-                    if (saved != null) setStatus("Configuration updated: " + saved.getName());
+                    if (saved != null) {
+                        // ── Rename guard ──────────────────────────────────────
+                        // If the configuration name changed, find every project
+                        // that references the old name and update it atomically.
+                        String newName = saved.getName();
+                        if (!chosen.equals(newName)) {
+                            List<Project> affected = ProjectManager.getInstance()
+                                    .getAllProjects().stream()
+                                    .filter(p -> chosen.equals(p.getConfigurationId()))
+                                    .toList();
+                            if (!affected.isEmpty()) {
+                                for (Project p : affected) {
+                                    p.setConfigurationId(newName);
+                                    ProjectManager.getInstance().saveProject(p);
+                                }
+                                // Refresh badge if the active project was affected
+                                if (currentProject != null
+                                        && chosen.equals(currentProject.getConfigurationId())) {
+                                    currentProject.setConfigurationId(newName);
+                                    configBadge.setText(newName);
+                                }
+                                setStatus("Configuration renamed: projects updated ("
+                                        + affected.size() + " affected).");
+                            } else {
+                                setStatus("Configuration updated: " + newName);
+                            }
+                        } else {
+                            setStatus("Configuration updated: " + newName);
+                        }
+                        // ─────────────────────────────────────────────────────
+                    }
                 } catch (IOException e) {
                     showError("Could not open Configuration dialog: " + e.getMessage());
                 }
@@ -336,7 +489,8 @@ public class MainWindowController {
         });
     }
 
-    @FXML private void handleDeleteConfiguration() {
+    @FXML
+    private void handleDeleteConfiguration() {
         List<Configuration> all = ConfigurationManager.getInstance().findAll();
         if (all.isEmpty()) {
             showError("No configurations found.");
@@ -363,9 +517,19 @@ public class MainWindowController {
         });
     }
 
-    @FXML private void handleHelp()              { /* deferred to final phase */ }
+    @FXML
+    private void handleHelp() {
+        try {
+            Window owner = mainContentArea.getScene().getWindow();
+            HelpDialogController dlg = HelpDialogController.create(owner);
+            dlg.showAndWait();
+        } catch (IOException e) {
+            showError("Could not open Help dialog: " + e.getMessage());
+        }
+    }
 
-    @FXML private void handleAbout() {
+    @FXML
+    private void handleAbout() {
         Alert a = new Alert(Alert.AlertType.INFORMATION,
                 "Integrated Assignment Environment\nCE 316 – Spring 2026", ButtonType.OK);
         a.setHeaderText("About IAE");
@@ -376,13 +540,19 @@ public class MainWindowController {
 
     @FXML
     public void handleRun(ActionEvent event) {
-        if (currentProjectName == null) return;
+        if (currentProjectName == null)
+            return;
         if (submissionsDir == null || submissionsDir.isBlank()) {
             showError("Please set a submissions directory before running.");
             return;
         }
         if (currentProject == null) {
             showError("No project loaded.");
+            return;
+        }
+
+        if (pipelineExecutor != null && pipelineExecutor.isRunning()) {
+            showError("An evaluation is already in progress.");
             return;
         }
 
@@ -405,6 +575,25 @@ public class MainWindowController {
             showError("Could not open progress dialog: " + e.getMessage());
             return;
         }
+
+        int timeoutMs = SettingsViewController.getDefaultTimeoutMs();
+        EvaluationEngine engine = new EvaluationEngine(
+                new DirectoryScanner(),
+                new DefaultCompiler(),
+                new DefaultExecutor(timeoutMs),
+                new OutputComparator(),
+                DatabaseManager.getInstance(),
+                progress,
+                timeoutMs);
+
+        pipelineExecutor = new PipelineExecutor(engine);
+
+        progress.setOnCancel(() -> {
+            if (pipelineExecutor != null) {
+                pipelineExecutor.cancel();
+            }
+        });
+
         progress.show();
         runBtn.setDisable(true);
         setStatus("Running evaluation…");
@@ -413,20 +602,14 @@ public class MainWindowController {
         Project projectSnapshot = currentProject;
         Configuration configSnapshot = config;
 
-        Thread worker = new Thread(() -> {
-            EvaluationEngine engine = new EvaluationEngine(
-                    new DirectoryScanner(),
-                    new DefaultCompiler(),
-                    new CodeRunner(),
-                    new OutputComparator(),
-                    DatabaseManager.getInstance(),
-                    progress,
-                    10_000
-            );
+        java.util.concurrent.Future<List<EvaluationResult>> future = pipelineExecutor.submit(projectSnapshot,
+                configSnapshot);
 
+        Thread watcher = new Thread(() -> {
+            updateBackgroundTasksCount(1);
             List<EvaluationResult> evalResults;
             try {
-                evalResults = engine.runProject(projectSnapshot, configSnapshot);
+                evalResults = future.get();
             } catch (Exception ex) {
                 Platform.runLater(() -> {
                     progress.close();
@@ -434,6 +617,7 @@ public class MainWindowController {
                     showError("Evaluation error: " + ex.getMessage());
                     setStatus("Evaluation failed.");
                 });
+                updateBackgroundTasksCount(-1);
                 return;
             }
 
@@ -444,11 +628,27 @@ public class MainWindowController {
                 progress.close();
                 runBtn.setDisable(false);
                 setStatus("Evaluation complete – " + rows.length + " submission(s) processed.");
-                if (!progress.isCancelled()) openResultsView(rows, tcCount, finalEvalResults);
+                if (!progress.isCancelled()) {
+                    openResultsView(rows, tcCount, finalEvalResults);
+                    lastResultsBtn.setVisible(true);
+                    lastResultsBtn.setManaged(true);
+                }
             });
+            updateBackgroundTasksCount(-1);
         });
-        worker.setDaemon(true);
-        worker.start();
+        watcher.setDaemon(true);
+        watcher.start();
+    }
+
+    private void updateBackgroundTasksCount(int delta) {
+        Platform.runLater(() -> {
+            activeBackgroundTasks += delta;
+            if (activeBackgroundTasks < 0)
+                activeBackgroundTasks = 0;
+            if (backgroundTasksLabel != null) {
+                backgroundTasksLabel.setText("Background Tasks: " + activeBackgroundTasks);
+            }
+        });
     }
 
     /* ── Browse submissions directory ── */
@@ -481,12 +681,13 @@ public class MainWindowController {
             TestCaseDialogController dlg = TestCaseDialogController.create(owner);
             dlg.showAndWait();
             TestCase tc = dlg.getResult();
-            if (tc == null) return;
+            if (tc == null)
+                return;
             if (currentProject != null) {
                 currentProject.addTestCase(tc);
                 saveCurrentProject();
             }
-            testCaseRows.add(new String[]{
+            testCaseRows.add(new String[] {
                     nullSafe(tc.getInputArgs()),
                     nullSafe(tc.getExpectedOutputFilePath())
             });
@@ -497,11 +698,61 @@ public class MainWindowController {
 
     /* ── Nav tabs ── */
 
-    @FXML private void showProjectsView()    { setActiveTab(projectsTab); }
+    @FXML
+    private void showProjectsView() {
+        setActiveTab(projectsTab);
+        clearContentArea();
+        if (currentProject != null) {
+            showProjectDetailPane();
+        } else {
+            showNoProjectPane();
+        }
+    }
 
-    @FXML private void showSubmissionsView() { showComingSoon("Submissions View", submissionsTab); }
-    @FXML private void showAnalyticsView()   { showComingSoon("Analytics View", analyticsTab); }
-    @FXML private void showSettingsView()    { showComingSoon("Settings", settingsTab); }
+    @FXML
+    private void showSubmissionsView() {
+        setActiveTab(submissionsTab);
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/iae/fxml/SubmissionsView.fxml"));
+            javafx.scene.Parent root = loader.load();
+            SubmissionsViewController ctrl = loader.getController();
+            ctrl.initProject(currentProject);
+            root.setId("submissionsView");
+            clearContentArea();
+            noProjectPane.setVisible(false);
+            noProjectPane.setManaged(false);
+            projectDetailScroll.setVisible(false);
+            projectDetailScroll.setManaged(false);
+            mainContentArea.getChildren().add(root);
+        } catch (java.io.IOException e) {
+            showError("Could not load Submissions View: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void showAnalyticsView() {
+        showComingSoon("Analytics View", analyticsTab);
+    }
+
+    @FXML
+    private void showSettingsView() {
+        setActiveTab(settingsTab);
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/iae/fxml/SettingsView.fxml"));
+            javafx.scene.Parent root = loader.load();
+            root.setId("settingsView");
+            clearContentArea();
+            noProjectPane.setVisible(false);
+            noProjectPane.setManaged(false);
+            projectDetailScroll.setVisible(false);
+            projectDetailScroll.setManaged(false);
+            mainContentArea.getChildren().add(root);
+        } catch (java.io.IOException e) {
+            showError("Could not load Settings view: " + e.getMessage());
+        }
+    }
 
     private void showComingSoon(String feature, Button tab) {
         setActiveTab(tab);
@@ -514,7 +765,8 @@ public class MainWindowController {
     }
 
     private void setActiveTab(Button tab) {
-        if (activeTab != null) activeTab.getStyleClass().remove("sidebar-tab-active");
+        if (activeTab != null)
+            activeTab.getStyleClass().remove("sidebar-tab-active");
         activeTab = tab;
         if (tab != null && !tab.getStyleClass().contains("sidebar-tab-active")) {
             tab.getStyleClass().add("sidebar-tab-active");
@@ -531,10 +783,20 @@ public class MainWindowController {
             ResultsViewController rvc = loader.getController();
             root.getProperties().put("mainWindowController", this);
             rvc.initData(results, tcCount, evalResults);
+            lastResultsRoot = root;
             showResultsPane(root);
         } catch (IOException e) {
             showError("Could not load Results View: " + e.getMessage());
         }
+    }
+
+    /** Re-displays the most recent results view without re-running the pipeline. */
+    @FXML
+    public void handleViewLastResults() {
+        if (lastResultsRoot == null)
+            return;
+        showResultsPane(lastResultsRoot);
+        setActiveTab(null);
     }
 
     /* ── Simple dialogs for new / open project ── */
@@ -545,7 +807,8 @@ public class MainWindowController {
             ProjectDialogController dlg = ProjectDialogController.create(owner);
             dlg.showAndWait();
             Project created = dlg.getResult();
-            if (created == null) return;
+            if (created == null)
+                return;
             TreeItem<String> root = projectTreeView.getRoot();
             root.getChildren().add(new TreeItem<>(created.getName()));
             projectTreeView.getSelectionModel().selectLast();
@@ -556,18 +819,28 @@ public class MainWindowController {
     }
 
     private void promptOpenProject() {
-        TreeItem<String> root = projectTreeView.getRoot();
-        if (root.getChildren().isEmpty()) {
+        if (ProjectManager.getInstance().getAllProjects().isEmpty()) {
             showError("No projects found. Create a new project first.");
             return;
         }
-        List<String> names = new ArrayList<>();
-        for (TreeItem<String> item : root.getChildren()) names.add(item.getValue());
-        ChoiceDialog<String> dlg = new ChoiceDialog<>(names.get(0), names);
-        dlg.setTitle("Open Project");
-        dlg.setHeaderText("Select a project:");
-        dlg.setContentText("Project:");
-        dlg.showAndWait().ifPresent(this::loadProjectByName);
+        try {
+            Window owner = mainContentArea.getScene().getWindow();
+            OpenProjectDialogController dlg = OpenProjectDialogController.create(owner);
+            dlg.showAndWait();
+            Project selected = dlg.getResult();
+            if (selected != null) {
+                loadProjectByName(selected.getName());
+                // Ensure the project appears selected in the sidebar tree
+                for (TreeItem<String> item : projectTreeView.getRoot().getChildren()) {
+                    if (selected.getName().equals(item.getValue())) {
+                        projectTreeView.getSelectionModel().select(item);
+                        break;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            showError("Could not open Open Project dialog: " + e.getMessage());
+        }
     }
 
     /* ── Convert EvaluationResult list → display rows ── */
@@ -588,7 +861,7 @@ public class MainWindowController {
             row[1] = compileOk ? "OK" : "FAILED";
 
             List<ComparisonResult> comps = r.getComparisonResults();
-            List<ExecutionResult>  execs = r.getExecutionResults();
+            List<ExecutionResult> execs = r.getExecutionResults();
             for (int t = 0; t < tcCount; t++) {
                 if (!compileOk) {
                     row[2 + t] = "—";
@@ -611,7 +884,8 @@ public class MainWindowController {
     /* ── Utilities ── */
 
     private void saveCurrentProject() {
-        if (currentProject == null) return;
+        if (currentProject == null)
+            return;
         try {
             ProjectManager.getInstance().saveProject(currentProject);
         } catch (RuntimeException e) {
@@ -619,7 +893,10 @@ public class MainWindowController {
         }
     }
 
-    private void setStatus(String msg) { if (statusLabel != null) statusLabel.setText(msg); }
+    private void setStatus(String msg) {
+        if (statusLabel != null)
+            statusLabel.setText(msg);
+    }
 
     private void showError(String msg) {
         Alert a = new Alert(Alert.AlertType.ERROR, msg, ButtonType.OK);
@@ -627,5 +904,7 @@ public class MainWindowController {
         a.showAndWait();
     }
 
-    private static String nullSafe(String s) { return s != null ? s : ""; }
+    private static String nullSafe(String s) {
+        return s != null ? s : "";
+    }
 }

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.iae.ui.HelpDialogController"
+      styleClass="progress-dialog-root"
+      spacing="0"
+      prefWidth="660" prefHeight="580" minWidth="520" minHeight="440"
+      stylesheets="@../css/styles.css">
+
+    <!-- ── Title bar ── -->
+    <VBox styleClass="progress-dialog-root" spacing="0">
+        <padding><Insets top="20" right="24" bottom="12" left="24"/></padding>
+
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <!-- help_outline = E8FD -->
+            <Label text="&#xE8FD;" styleClass="progress-dialog-icon"/>
+            <Label text="IAE User Manual" styleClass="progress-dialog-title"/>
+        </HBox>
+    </VBox>
+
+    <Pane styleClass="section-divider" maxHeight="1" minHeight="1"/>
+
+    <!-- ── Scrollable content ── -->
+    <ScrollPane VBox.vgrow="ALWAYS" fitToWidth="true"
+                styleClass="project-detail-scroll" hbarPolicy="NEVER">
+        <VBox spacing="24" styleClass="progress-dialog-root">
+            <padding><Insets top="20" right="28" bottom="20" left="28"/></padding>
+
+            <!-- ═══ Section 1: Getting Started ═══ -->
+            <VBox spacing="8">
+                <Label text="Getting Started" style="-fx-font-family:'Inter SemiBold'; -fx-font-size:15px; -fx-text-fill:#005FB8;"/>
+                <Pane styleClass="section-divider" maxHeight="1" minHeight="1"/>
+                <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#1a1c1c;"
+                       text="IAE (Integrated Assignment Evaluator) automates grading of student programming assignments. Follow these steps to get started:"/>
+                <VBox spacing="4" style="-fx-padding: 0 0 0 12;">
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="1. Create a Configuration — Configurations menu → New Configuration. Define the language, source file, compile command, and run command."/>
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="2. Create a Project — File → New Project. Give it a name, assign a configuration, and optionally set a submissions directory."/>
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="3. Add Test Cases — In the project detail pane, click Add Test Case. Specify the input arguments and the path to the expected output file."/>
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="4. Set Submissions Directory — Click the folder icon next to the submissions directory field and browse to the folder containing student ZIP archives."/>
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="5. Run Evaluation — Click the Run button (top-right) or press F9. A progress dialog will show evaluation status in real time."/>
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="6. Review Results — The results view opens automatically when the run completes, showing per-student pass/fail and overall statistics."/>
+                </VBox>
+            </VBox>
+
+            <!-- ═══ Section 2: Core Keyboard Shortcuts ═══ -->
+            <VBox spacing="8">
+                <Label text="Core Keyboard Shortcuts" style="-fx-font-family:'Inter SemiBold'; -fx-font-size:15px; -fx-text-fill:#005FB8;"/>
+                <Pane styleClass="section-divider" maxHeight="1" minHeight="1"/>
+                <TableView fx:id="shortcutsTable" styleClass="data-table" prefHeight="200" maxWidth="Infinity" fixedCellSize="34">
+                    <columns>
+                        <TableColumn fx:id="actionCol"   text="Action"   prefWidth="280" resizable="true"/>
+                        <TableColumn fx:id="shortcutCol" text="Shortcut" prefWidth="200" resizable="true"/>
+                    </columns>
+                    <placeholder>
+                        <Label text="" style="-fx-text-fill:transparent;"/>
+                    </placeholder>
+                </TableView>
+            </VBox>
+
+            <!-- ═══ Section 3: Workspace Organisation ═══ -->
+            <VBox spacing="8">
+                <Label text="Workspace Organisation" style="-fx-font-family:'Inter SemiBold'; -fx-font-size:15px; -fx-text-fill:#005FB8;"/>
+                <Pane styleClass="section-divider" maxHeight="1" minHeight="1"/>
+                <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#1a1c1c;"
+                       text="The IAE workspace is organised around the sidebar and main content area:"/>
+                <VBox spacing="6" style="-fx-padding: 0 0 0 12;">
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="Projects tab — Lists all saved projects in a tree view. Click any project name to open it in the detail pane."/>
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="Submissions tab — Shows the files inside the current project's submissions directory after a scan."/>
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="Analytics tab — Aggregate charts and statistics for the active project (coming in a future version)."/>
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="Settings tab — Configure application-level defaults such as the execution timeout and the default submissions directory."/>
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="Project Detail Pane — Displays the active project's name, assigned configuration badge, submissions directory, and test case table."/>
+                </VBox>
+            </VBox>
+
+            <!-- ═══ Section 4: Viewing Results ═══ -->
+            <VBox spacing="8">
+                <Label text="Viewing Results" style="-fx-font-family:'Inter SemiBold'; -fx-font-size:15px; -fx-text-fill:#005FB8;"/>
+                <Pane styleClass="section-divider" maxHeight="1" minHeight="1"/>
+                <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#1a1c1c;"
+                       text="After a pipeline run completes the Results View opens automatically:"/>
+                <VBox spacing="6" style="-fx-padding: 0 0 0 12;">
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="Summary Cards — Three cards at the top show total PASS, FAIL, and ERROR counts with a pass-rate percentage."/>
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="Results Table — One row per student. Columns: Student ID, Compile status, one column per test case (PASS/FAIL/TIMEOUT/—), Overall Status, and Error Message."/>
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="Detail Panel — Selecting a row expands the bottom panel to show the compile output and per-test-case stdout/stderr for that student."/>
+                    <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                           text="Last Results button — Appears in the toolbar after a run. Click it to return to the results view without re-running the pipeline."/>
+                </VBox>
+            </VBox>
+
+            <!-- ═══ Section 5: Troubleshooting ═══ -->
+            <VBox spacing="8">
+                <Label text="Troubleshooting" style="-fx-font-family:'Inter SemiBold'; -fx-font-size:15px; -fx-text-fill:#005FB8;"/>
+                <Pane styleClass="section-divider" maxHeight="1" minHeight="1"/>
+                <VBox spacing="10">
+                    <VBox spacing="3">
+                        <Label text="COMPILE_ERROR for all submissions" style="-fx-font-family:'Inter SemiBold'; -fx-font-size:13px; -fx-text-fill:#1a1c1c;"/>
+                        <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                               text="Check that the compile command path in your Configuration is correct and that the compiler is installed. On Windows, use the full path (e.g. C:\Program Files\Java\jdk-17\bin\javac.exe) or ensure the JDK bin directory is on your system PATH."/>
+                    </VBox>
+                    <VBox spacing="3">
+                        <Label text="SOURCE_MISSING for all submissions" style="-fx-font-family:'Inter SemiBold'; -fx-font-size:13px; -fx-text-fill:#1a1c1c;"/>
+                        <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                               text="Verify that the Source File Name in the Configuration matches the exact filename inside the student ZIP archives (case-sensitive on Linux/macOS)."/>
+                    </VBox>
+                    <VBox spacing="3">
+                        <Label text="TIMEOUT on all test cases" style="-fx-font-family:'Inter SemiBold'; -fx-font-size:13px; -fx-text-fill:#1a1c1c;"/>
+                        <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                               text="Increase the execution timeout in Settings. The default is 10 seconds; complex programs may need more time."/>
+                    </VBox>
+                    <VBox spacing="3">
+                        <Label text="Database errors on startup" style="-fx-font-family:'Inter SemiBold'; -fx-font-size:13px; -fx-text-fill:#1a1c1c;"/>
+                        <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                               text="IAE stores data in iae.db in its working directory. Ensure you have write permission to that folder. Delete iae.db to start with a clean database (all projects and results will be lost)."/>
+                    </VBox>
+                    <VBox spacing="3">
+                        <Label text="ZIP_ERROR for some students" style="-fx-font-family:'Inter SemiBold'; -fx-font-size:13px; -fx-text-fill:#1a1c1c;"/>
+                        <Label wrapText="true" style="-fx-font-family:'Inter'; -fx-font-size:13px; -fx-text-fill:#424752;"
+                               text="The student's ZIP archive may be corrupted or password-protected. Ask the student to re-submit. IAE will skip the affected archive and continue with the rest."/>
+                    </VBox>
+                </VBox>
+            </VBox>
+
+        </VBox>
+    </ScrollPane>
+
+    <Pane styleClass="section-divider" maxHeight="1" minHeight="1"/>
+
+    <!-- ── Footer ── -->
+    <HBox alignment="CENTER_RIGHT" spacing="8">
+        <padding><Insets top="12" right="20" bottom="14" left="20"/></padding>
+        <Button fx:id="closeManualBtn" text="Close Manual"
+                styleClass="primary-button" onAction="#handleClose"/>
+    </HBox>
+
+</VBox>

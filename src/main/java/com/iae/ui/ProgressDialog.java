@@ -29,6 +29,11 @@ public class ProgressDialog implements ProgressListener {
 
     private Stage stage;
     private volatile boolean cancelled = false;
+    private Runnable onCancel;
+
+    public void setOnCancel(Runnable onCancel) {
+        this.onCancel = onCancel;
+    }
 
     private static final DateTimeFormatter TIME_FMT =
             DateTimeFormatter.ofPattern("HH:mm:ss");
@@ -101,6 +106,9 @@ public class ProgressDialog implements ProgressListener {
     private void handleCancel() {
         cancelled = true;
         appendLog("Cancellation requested.");
+        if (onCancel != null) {
+            onCancel.run();
+        }
         if (stage != null) stage.close();
     }
 }

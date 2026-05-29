@@ -42,6 +42,16 @@
 
                 <Separator orientation="VERTICAL" styleClass="toolbar-separator"/>
 
+                <!-- Last Results button (assessment = E85C) — visible only after a run -->
+                <Button fx:id="lastResultsBtn" styleClass="secondary-button"
+                        onAction="#handleViewLastResults"
+                        visible="false" managed="false"
+                        contentDisplay="LEFT">
+                    <graphic><Label text="&#xE85C;" style="-fx-font-family:'Material Icons';-fx-font-size:16px;-fx-text-fill:#424752;"/></graphic>
+                    <HBox.margin><Insets left="8" right="8"/></HBox.margin>
+                    Last Results
+                </Button>
+
                 <!-- Run button (play_arrow = E037) -->
                 <Button fx:id="runBtn" styleClass="primary-button"
                         onAction="#handleRun" disable="true"
@@ -55,9 +65,10 @@
             <!-- Menu bar -->
             <MenuBar styleClass="menu-bar">
                 <Menu text="File">
-                    <MenuItem text="New Project"    onAction="#handleNewProject"/>
-                    <MenuItem text="Open Project"   onAction="#handleOpenProject"/>
+                    <MenuItem text="New Project" accelerator="Shortcut+N"   onAction="#handleNewProject"/>
+                    <MenuItem text="Open Project" accelerator="Shortcut+O"  onAction="#handleOpenProject"/>
                     <MenuItem text="Edit Project"   onAction="#handleEditProject"/>
+                    <MenuItem text="Save Project" accelerator="Shortcut+S"  onAction="#handleSaveProject"/>
                     <MenuItem text="Close Project"  onAction="#handleCloseProject"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Delete Project" onAction="#handleDeleteProject"/>
@@ -240,7 +251,7 @@
             <Label fx:id="statusLabel" text="System Ready" styleClass="status-text"/>
             <Label text="  |  " styleClass="status-sep"/>
             <Label text="&#xE627;" styleClass="status-icon" style="-fx-text-fill:#727783;"/>
-            <Label text="Background Tasks" styleClass="status-text"/>
+            <Label fx:id="backgroundTasksLabel" text="Background Tasks" styleClass="status-text"/>
             <Pane HBox.hgrow="ALWAYS"/>
             <Label text="&#xE875;" styleClass="status-icon" style="-fx-text-fill:#727783;"/>
             <Label fx:id="envStatusLabel" text="Environment: Java 17" styleClass="status-text"/>

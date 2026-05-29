@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.iae.ui.OpenProjectDialogController"
+      styleClass="progress-dialog-root"
+      spacing="0"
+      prefWidth="560" prefHeight="460" minWidth="420" minHeight="360"
+      stylesheets="@../css/styles.css">
+
+    <!-- ── Title ── -->
+    <VBox spacing="0">
+        <padding><Insets top="20" right="24" bottom="14" left="24"/></padding>
+        <!-- folder_open = E2C8 -->
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="&#xE2C8;" styleClass="progress-dialog-icon"/>
+            <Label text="Open Project" styleClass="progress-dialog-title"/>
+        </HBox>
+    </VBox>
+
+    <Pane styleClass="section-divider" maxHeight="1" minHeight="1"/>
+
+    <!-- ── Filter row ── -->
+    <HBox spacing="8" alignment="CENTER_LEFT">
+        <padding><Insets top="12" right="20" bottom="8" left="20"/></padding>
+        <!-- search = E8B6 -->
+        <Label text="&#xE8B6;" styleClass="toolbar-icon"
+               style="-fx-font-size:18px; -fx-text-fill:#727783;"/>
+        <TextField fx:id="filterField"
+                   styleClass="text-field"
+                   promptText="Filter by project name…"
+                   HBox.hgrow="ALWAYS"/>
+    </HBox>
+
+    <!-- ── Projects table ── -->
+    <TableView fx:id="projectsTable" styleClass="data-table"
+               VBox.vgrow="ALWAYS"
+               style="-fx-border-radius:0; -fx-background-radius:0; -fx-border-color:transparent transparent #c2c6d4 transparent; -fx-border-width:1 0 1 0;">
+        <columns>
+            <TableColumn fx:id="nameCol"    text="Project"  prefWidth="310" resizable="true"/>
+            <TableColumn fx:id="lastRunCol" text="Last Run" prefWidth="200" resizable="true"/>
+        </columns>
+        <placeholder>
+            <VBox alignment="CENTER" spacing="8">
+                <padding><Insets top="24"/></padding>
+                <Label text="&#xE2C8;" styleClass="placeholder-icon"
+                       style="-fx-font-size:36px;"/>
+                <Label text="No projects found." styleClass="placeholder-subtitle"/>
+            </VBox>
+        </placeholder>
+    </TableView>
+
+    <!-- ── Footer ── -->
+    <HBox alignment="CENTER_RIGHT" spacing="8">
+        <padding><Insets top="12" right="20" bottom="14" left="20"/></padding>
+        <Button text="Cancel" styleClass="secondary-button" onAction="#handleCancel"/>
+        <Button fx:id="openBtn" text="Open" styleClass="primary-button"
+                disable="true" onAction="#handleOpen"/>
+    </HBox>
+
+</VBox>
