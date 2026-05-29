@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.iae.ui.ImportExportDialogController"
+      styleClass="progress-dialog-root"
+      spacing="14" prefWidth="500" minWidth="440"
+      stylesheets="@../css/styles.css">
+
+    <padding><Insets top="24" right="24" bottom="20" left="24"/></padding>
+
+    <!-- Title  import_export = E0C3 -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Label text="&#xE0C3;" styleClass="progress-dialog-icon"/>
+        <Label text="Import / Export Configuration" styleClass="progress-dialog-title"/>
+    </HBox>
+
+    <Pane styleClass="section-divider" maxHeight="1"/>
+
+    <TabPane tabClosingPolicy="UNAVAILABLE">
+
+        <!-- ── Import tab ───────────────────────────────────────────────── -->
+        <Tab text="Import">
+            <VBox spacing="14">
+                <padding><Insets top="16" right="4" bottom="4" left="4"/></padding>
+
+                <Label text="Select a configuration (.json) file to import into IAE."
+                       styleClass="field-label" wrapText="true"/>
+
+                <VBox spacing="4">
+                    <Label text="CONFIGURATION FILE" styleClass="field-label"/>
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <TextField fx:id="importPathField" styleClass="text-field"
+                                   promptText="No file selected"
+                                   HBox.hgrow="ALWAYS" editable="false"/>
+                        <Button text="Browse…" styleClass="secondary-button"
+                                onAction="#handleBrowseImportFile"/>
+                    </HBox>
+                </VBox>
+
+                <Label fx:id="importFeedbackLabel" wrapText="true"
+                       styleClass="field-label"/>
+
+                <HBox alignment="CENTER_RIGHT" spacing="8">
+                    <padding><Insets top="6"/></padding>
+                    <Button text="Cancel" styleClass="secondary-button" onAction="#handleCancel"/>
+                    <Button text="Confirm" styleClass="primary-button" onAction="#handleConfirmImport"/>
+                </HBox>
+            </VBox>
+        </Tab>
+
+        <!-- ── Export tab ───────────────────────────────────────────────── -->
+        <Tab text="Export">
+            <VBox spacing="14">
+                <padding><Insets top="16" right="4" bottom="4" left="4"/></padding>
+
+                <Label text="Select a configuration and a destination to export it as JSON."
+                       styleClass="field-label" wrapText="true"/>
+
+                <VBox spacing="4">
+                    <Label text="CONFIGURATION" styleClass="field-label"/>
+                    <ComboBox fx:id="exportConfigCombo" maxWidth="Infinity"
+                              promptText="Select a configuration"/>
+                </VBox>
+
+                <VBox spacing="4">
+                    <Label text="DESTINATION FILE" styleClass="field-label"/>
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <TextField fx:id="exportPathField" styleClass="text-field"
+                                   promptText="No destination selected"
+                                   HBox.hgrow="ALWAYS" editable="false"/>
+                        <Button text="Browse…" styleClass="secondary-button"
+                                onAction="#handleBrowseExportPath"/>
+                    </HBox>
+                </VBox>
+
+                <Label fx:id="exportFeedbackLabel" wrapText="true"
+                       styleClass="field-label"/>
+
+                <HBox alignment="CENTER_RIGHT" spacing="8">
+                    <padding><Insets top="6"/></padding>
+                    <Button text="Cancel" styleClass="secondary-button" onAction="#handleCancel"/>
+                    <Button text="Export" styleClass="primary-button" onAction="#handleExport"/>
+                </HBox>
+            </VBox>
+        </Tab>
+
+    </TabPane>
+
+</VBox>

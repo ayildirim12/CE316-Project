@@ -80,6 +80,9 @@
                     <MenuItem text="Edit Configuration"   onAction="#handleEditConfiguration"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Delete Configuration" onAction="#handleDeleteConfiguration"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Import Configuration…" onAction="#handleImportConfiguration"/>
+                    <MenuItem text="Export Configuration…" onAction="#handleExportConfiguration"/>
                 </Menu>
                 <Menu text="Help">
                     <MenuItem text="Help"  onAction="#handleHelp"/>

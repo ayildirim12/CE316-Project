@@ -92,12 +92,12 @@ public class MainWindowController {
     private TableColumn<String[], String> tcActionCol;
 
     /* ── UI state ── */
-<<<<<<< Updated upstream
     private Button activeTab = null;
     private String currentProjectName = null;
     private String currentConfigName = null;
     private String submissionsDir = null;
     private Project currentProject = null;
+    private AnalyticsViewController analyticsController = null;
     private final ObservableList<String[]> testCaseRows = FXCollections.observableArrayList();
 
     /**
@@ -106,16 +106,6 @@ public class MainWindowController {
     private javafx.scene.Parent lastResultsRoot = null;
     private PipelineExecutor pipelineExecutor;
     private int activeBackgroundTasks = 0;
-=======
-    private Button                activeTab            = null;
-    private String                currentProjectName   = null;
-    private String                currentConfigName    = null;
-    private String                submissionsDir       = null;
-    private Project               currentProject       = null;
-    private AnalyticsViewController analyticsController = null;
-    private final ObservableList<String[]> testCaseRows =
-            FXCollections.observableArrayList();
->>>>>>> Stashed changes
 
     /* ── Init ── */
 
@@ -529,6 +519,36 @@ public class MainWindowController {
     }
 
     @FXML
+    private void handleImportConfiguration() {
+        openImportExportDialog("Configuration imported.");
+    }
+
+    @FXML
+    private void handleExportConfiguration() {
+        openImportExportDialog("Configuration exported.");
+    }
+
+    /** Opens the Import/Export dialog and refreshes config-dependent UI on success. */
+    private void openImportExportDialog(String successStatus) {
+        try {
+            Window owner = mainContentArea.getScene().getWindow();
+            ImportExportDialogController dlg = ImportExportDialogController.create(owner);
+            dlg.showAndWait();
+            if (dlg.isChanged()) {
+                // Refresh the cache so dialogs that list configurations (Edit/Delete)
+                // and the active project's config badge reflect the imported config.
+                ConfigurationManager.getInstance().findAll();
+                if (currentProjectName != null) {
+                    loadProjectByName(currentProjectName);
+                }
+                setStatus(successStatus);
+            }
+        } catch (IOException e) {
+            showError("Could not open Import/Export dialog: " + e.getMessage());
+        }
+    }
+
+    @FXML
     private void handleHelp() {
         try {
             Window owner = mainContentArea.getScene().getWindow();
@@ -639,16 +659,12 @@ public class MainWindowController {
                 progress.close();
                 runBtn.setDisable(false);
                 setStatus("Evaluation complete – " + rows.length + " submission(s) processed.");
-<<<<<<< Updated upstream
                 if (!progress.isCancelled()) {
                     openResultsView(rows, tcCount, finalEvalResults);
                     lastResultsBtn.setVisible(true);
                     lastResultsBtn.setManaged(true);
                 }
-=======
-                if (!progress.isCancelled()) openResultsView(rows, tcCount, finalEvalResults);
                 if (analyticsController != null) analyticsController.refresh();
->>>>>>> Stashed changes
             });
             updateBackgroundTasksCount(-1);
         });
@@ -725,7 +741,6 @@ public class MainWindowController {
         }
     }
 
-<<<<<<< Updated upstream
     @FXML
     private void showSubmissionsView() {
         setActiveTab(submissionsTab);
@@ -748,11 +763,6 @@ public class MainWindowController {
     }
 
     @FXML
-    private void showAnalyticsView() {
-        showComingSoon("Analytics View", analyticsTab);
-    }
-
-    @FXML
     private void showSettingsView() {
         setActiveTab(settingsTab);
         try {
@@ -770,10 +780,6 @@ public class MainWindowController {
             showError("Could not load Settings view: " + e.getMessage());
         }
     }
-=======
-    @FXML private void showSubmissionsView() { showComingSoon("Submissions View", submissionsTab); }
-    @FXML private void showSettingsView()    { showComingSoon("Settings", settingsTab); }
->>>>>>> Stashed changes
 
 
 
