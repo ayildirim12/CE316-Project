@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.iae.ui.SettingsViewController"
+      styleClass="progress-dialog-root"
+      spacing="0"
+      stylesheets="@../css/styles.css">
+
+    <!-- ── Title ── -->
+    <VBox spacing="0">
+        <padding><Insets top="28" right="28" bottom="18" left="28"/></padding>
+        <!-- settings = E8B8 -->
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="&#xE8B8;" styleClass="progress-dialog-icon"/>
+            <Label text="Settings" styleClass="progress-dialog-title"/>
+        </HBox>
+    </VBox>
+
+    <Pane styleClass="section-divider" maxHeight="1" minHeight="1"/>
+
+    <!-- ── Fields ── -->
+    <VBox spacing="20" VBox.vgrow="ALWAYS">
+        <padding><Insets top="24" right="28" bottom="24" left="28"/></padding>
+
+        <!-- Execution Timeout -->
+        <VBox spacing="6">
+            <Label text="EXECUTION TIMEOUT (SECONDS)" styleClass="field-label"/>
+            <Label wrapText="true"
+                   text="Maximum time (in seconds) a student program is allowed to run per test case before it is killed and reported as TIMEOUT."
+                   style="-fx-font-family:'Inter'; -fx-font-size:12px; -fx-text-fill:#727783;"/>
+            <TextField fx:id="timeoutField" styleClass="text-field"
+                       promptText="e.g. 10" maxWidth="160"/>
+        </VBox>
+
+        <Pane styleClass="section-divider" maxHeight="1" minHeight="1"/>
+
+        <!-- Default Submissions Directory -->
+        <VBox spacing="6">
+            <Label text="DEFAULT SUBMISSIONS DIRECTORY" styleClass="field-label"/>
+            <Label wrapText="true"
+                   text="Pre-fills the submissions directory field when you open or create a project. Leave blank to always start with an empty field."
+                   style="-fx-font-family:'Inter'; -fx-font-size:12px; -fx-text-fill:#727783;"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <!-- folder = E2C7 -->
+                <Button styleClass="toolbar-icon-btn" onAction="#handleBrowse"
+                        contentDisplay="GRAPHIC_ONLY">
+                    <graphic><Label text="&#xE2C7;" styleClass="toolbar-icon"/></graphic>
+                    <tooltip><Tooltip text="Browse…"/></tooltip>
+                </Button>
+                <TextField fx:id="defaultSubmissionsDirField" styleClass="text-field"
+                           promptText="Click folder icon to select a default directory"
+                           HBox.hgrow="ALWAYS"/>
+            </HBox>
+        </VBox>
+
+        <Pane VBox.vgrow="ALWAYS"/>
+
+        <!-- Status label -->
+        <Label fx:id="settingsStatusLabel" text=""
+               style="-fx-font-family:'Inter'; -fx-font-size:12px; -fx-text-fill:#1a7a34;"/>
+
+    </VBox>
+
+    <Pane styleClass="section-divider" maxHeight="1" minHeight="1"/>
+
+    <!-- ── Action buttons ── -->
+    <HBox alignment="CENTER_RIGHT" spacing="8">
+        <padding><Insets top="12" right="24" bottom="16" left="24"/></padding>
+        <Button text="Reset to Defaults" styleClass="secondary-button" onAction="#handleReset"/>
+        <Button text="Save" styleClass="primary-button" onAction="#handleSave"/>
+    </HBox>
+
+</VBox>

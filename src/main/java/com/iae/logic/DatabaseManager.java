@@ -632,6 +632,36 @@ public class DatabaseManager {
         return results;
     }
 
+    // ── Last-run info (for Open Project dialog) ───────────────────────────────
+
+    /**
+     * Returns a human-readable "last run" string for the given project, derived
+     * from the {@code run_at} column of the most-recent RESULTS row.
+     * Returns {@code "Never"} if no results exist for the project.
+     * No schema changes are made — this works entirely within the existing table.
+     *
+     * @param projectId the project id to query
+     * @return a date string like "2026-05-29 10:30:00", or "Never"
+     */
+    public synchronized String getLastRunInfo(int projectId) {
+        String sql = "SELECT run_at FROM RESULTS WHERE project_id=? ORDER BY id DESC LIMIT 1";
+        try {
+            connect();
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, projectId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String runAt = rs.getString("run_at");
+                        return (runAt != null && !runAt.isBlank()) ? runAt : "—";
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("DatabaseManager.getLastRunInfo failed: " + e.getMessage());
+        }
+        return "Never";
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private Project mapProject(ResultSet rs) throws SQLException {
