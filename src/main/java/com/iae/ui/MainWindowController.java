@@ -800,7 +800,7 @@ public class MainWindowController {
         setActiveTab(analyticsTab);
         try {
             FXMLLoader loader = new FXMLLoader(
-                getClass().getResource("/com/iae/ui/AnalyticsView.fxml"));
+                getClass().getResource("/com/iae/fxml/AnalyticsView.fxml"));
             Parent view = loader.load();
             analyticsController = loader.getController(); // ← correct field, not analyticsTab
             mainContentArea.getChildren().setAll(view);
