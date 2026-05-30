@@ -814,6 +814,7 @@ public class MainWindowController {
                 getClass().getResource("/com/iae/fxml/AnalyticsView.fxml"));
             Parent view = loader.load();
             analyticsController = loader.getController();
+            view.setId("analyticsView");
             clearContentArea();
             noProjectPane.setVisible(false);
             noProjectPane.setManaged(false);

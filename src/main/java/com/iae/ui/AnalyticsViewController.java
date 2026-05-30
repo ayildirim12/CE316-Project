@@ -35,9 +35,6 @@ public class AnalyticsViewController {
 
     private static final SimpleDateFormat DATE_FMT = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
-    private final ReportManager reportManager =
-            new ReportManager(DatabaseManager.getInstance());
-
     // Lifecycle 
     @FXML
     public void initialize() {
@@ -55,25 +52,48 @@ public class AnalyticsViewController {
         int grandPass  = 0;
 
         for (Project project : projects) {
-            ReportManager.Summary summary = reportManager.generateSummary(project.getId());
+            // Deduplicate by studentId to avoid counting multiple runs
+            long pass  = project.getResults().stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                        r -> r.getStudentId(),
+                        r -> r,
+                        (existing, replacement) -> replacement)) // keep latest
+                    .values().stream()
+                    .filter(r -> r.getStatus() == com.iae.model.Status.SUCCESS)
+                    .count();
 
-            int total = summary.total();
-            int pass  = summary.passCount();
-            int fail  = summary.failCount();
-            int error = summary.errorCount();
+            long fail  = project.getResults().stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                        r -> r.getStudentId(),
+                        r -> r,
+                        (existing, replacement) -> replacement))
+                    .values().stream()
+                    .filter(r -> r.getStatus() == com.iae.model.Status.WRONG_OUTPUT)
+                    .count();
 
+            long error = project.getResults().stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                        r -> r.getStudentId(),
+                        r -> r,
+                        (existing, replacement) -> replacement))
+                    .values().stream()
+                    .filter(r -> r.getStatus() != com.iae.model.Status.SUCCESS
+                            && r.getStatus() != com.iae.model.Status.WRONG_OUTPUT)
+                    .count();
+
+            int total = (int)(pass + fail + error);
             grandTotal += total;
-            grandPass  += pass;
+            grandPass  += (int) pass;
 
             String passRate = (total > 0)
-                    ? String.format("%.1f%%", summary.passRate() * 100.0)
+                    ? String.format("%.1f%%", (pass * 100.0) / total)
                     : "—";
 
             String lastRun = (project.getLastRunAt() != null)
                     ? DATE_FMT.format(project.getLastRunAt())
                     : "Never";
 
-            rows.add(new ProjectRow(project.getName(), total, pass, fail, error, passRate, lastRun));
+            rows.add(new ProjectRow(project.getName(), total, (int)pass, (int)fail, (int)error, passRate, lastRun));
         }
 
         analyticsTable.setItems(rows);
