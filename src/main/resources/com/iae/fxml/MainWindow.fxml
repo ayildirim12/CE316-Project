@@ -20,6 +20,13 @@
                 <!-- IAE badge -->
                 <Label text="IAE" styleClass="app-badge"/>
 
+                <!-- back = E5C4 -->
+                <Button fx:id="backBtn" styleClass="toolbar-icon-btn" onAction="#handleBack"
+                        visible="false" managed="false" contentDisplay="GRAPHIC_ONLY">
+                    <graphic><Label text="&#xE5C4;" styleClass="toolbar-icon"/></graphic>
+                    <tooltip><Tooltip text="Go Back"/></tooltip>
+                </Button>
+
                 <!-- App title -->
                 <Label text="Integrated Assignment Environment" styleClass="app-title"/>
 
@@ -216,8 +223,8 @@
                                              prefWidth="40" minWidth="40" resizable="false"/>
                                 <TableColumn fx:id="tcInputCol"  text="Input Arguments" prefWidth="240"/>
                                 <TableColumn fx:id="tcOutputCol" text="Expected Output File" prefWidth="320"/>
-                                <TableColumn fx:id="tcActionCol" text="" prefWidth="50"
-                                             minWidth="50" resizable="false"/>
+                                <TableColumn fx:id="tcActionCol" text="" prefWidth="72"
+                                             minWidth="72" resizable="false"/>
                             </columns>
                             <placeholder>
                                 <Label text="No test cases yet. Click Add Test Case to begin."

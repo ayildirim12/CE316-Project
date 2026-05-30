@@ -20,18 +20,18 @@
 
     <Pane styleClass="section-divider" maxHeight="1"/>
 
+    <!-- Language -->
+    <VBox spacing="4">
+        <Label text="LANGUAGE" styleClass="field-label"/>
+        <ComboBox fx:id="languageCombo" styleClass="lang-combo" editable="true"
+                  maxWidth="Infinity" promptText="Select or type a language"/>
+    </VBox>
+
     <!-- Configuration Name -->
     <VBox spacing="4">
         <Label text="CONFIGURATION NAME" styleClass="field-label"/>
         <TextField fx:id="nameField" styleClass="text-field"
                    promptText="e.g. Java 17 Standard"/>
-    </VBox>
-
-    <!-- Language -->
-    <VBox spacing="4">
-        <Label text="LANGUAGE" styleClass="field-label"/>
-        <TextField fx:id="languageField" styleClass="text-field"
-                   promptText="e.g. Java, C, Python"/>
     </VBox>
 
     <!-- Source File Name -->
@@ -57,7 +57,7 @@
         <VBox spacing="4">
             <Label text="Compile Arguments" styleClass="field-label"/>
             <TextField fx:id="compileArgsField" styleClass="text-field"
-                       promptText="e.g. Main.java -d ."/>
+                       promptText="e.g. -o main  (source file is appended automatically)"/>
         </VBox>
     </VBox>
 
