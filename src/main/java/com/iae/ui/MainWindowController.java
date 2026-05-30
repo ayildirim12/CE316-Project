@@ -802,8 +802,14 @@ public class MainWindowController {
             FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/com/iae/fxml/AnalyticsView.fxml"));
             Parent view = loader.load();
-            analyticsController = loader.getController(); // ← correct field, not analyticsTab
-            mainContentArea.getChildren().setAll(view);
+            analyticsController = loader.getController();
+            view.setId("analyticsView");
+            clearContentArea();
+            noProjectPane.setVisible(false);
+            noProjectPane.setManaged(false);
+            projectDetailScroll.setVisible(false);
+            projectDetailScroll.setManaged(false);
+            mainContentArea.getChildren().add(view);
         } catch (IOException e) {
             e.printStackTrace();
             showError("Could not load Analytics View: " + e.getMessage());
