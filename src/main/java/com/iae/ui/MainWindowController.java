@@ -70,6 +70,8 @@ public class MainWindowController {
     private Button runBtn;
     @FXML
     private Button lastResultsBtn;
+    @FXML
+    private Button backBtn;
 
     @FXML
     private Button projectsTab;
@@ -201,9 +203,16 @@ public class MainWindowController {
 
         /* Actions column – delete button */
         tcActionCol.setCellFactory(col -> new TableCell<>() {
-            private final Button del = new Button("✕");
+            private final Button del = new Button("Delete");
             {
-                del.getStyleClass().add("ghost-button");
+                del.setStyle(
+                    "-fx-background-color:transparent;" +
+                    "-fx-border-color:transparent;" +
+                    "-fx-text-fill:#ba1a1a;" +
+                    "-fx-font-size:11px;" +
+                    "-fx-cursor:hand;" +
+                    "-fx-padding:2 4 2 4;" +
+                    "-fx-min-width:0;");
                 del.setOnAction(e -> {
                     int idx = getIndex();
                     testCaseRows.remove(idx);
@@ -217,6 +226,8 @@ public class MainWindowController {
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
+                setPadding(javafx.geometry.Insets.EMPTY);
+                setAlignment(javafx.geometry.Pos.CENTER);
                 setGraphic(empty ? null : del);
                 setText(null);
             }
@@ -814,6 +825,11 @@ public class MainWindowController {
             e.printStackTrace();
             showError("Could not load Analytics View: " + e.getMessage());
         }
+    }
+
+    @FXML
+    private void handleBack() {
+        // Back navigation is not yet implemented
     }
 
     

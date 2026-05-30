@@ -289,6 +289,40 @@
     -fx-effect: dropshadow(gaussian, rgba(0,95,184,0.18), 4, 0, 0, 1);
 }
 
+/* Language combo box */
+.lang-combo {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #c2c6d4;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-font-family: 'Inter';
+    -fx-font-size: 13px;
+    -fx-pref-height: 34px;
+    -fx-max-width: Infinity;
+}
+.lang-combo:focused {
+    -fx-border-color: #005FB8;
+    -fx-effect: dropshadow(gaussian, rgba(0,95,184,0.18), 4, 0, 0, 1);
+}
+.lang-combo .text-field {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #1a1c1c;
+    -fx-prompt-text-fill: #a0a4ae;
+    -fx-font-family: 'Inter';
+    -fx-font-size: 13px;
+}
+.lang-combo .arrow-button {
+    -fx-background-color: transparent;
+}
+.lang-combo .list-cell {
+    -fx-font-family: 'Inter';
+    -fx-font-size: 13px;
+    -fx-text-fill: #1a1c1c;
+    -fx-padding: 4 8 4 8;
+}
+
 /* ── Data table ─────────────────────────────────────────────────────────── */
 .data-table {
     -fx-background-color: #ffffff;

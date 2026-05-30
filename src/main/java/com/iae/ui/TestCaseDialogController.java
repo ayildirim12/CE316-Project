@@ -70,6 +70,17 @@ public class TestCaseDialogController {
                 new FileChooser.ExtensionFilter("Text files", "*.txt", "*.out", "*.expected"));
         fc.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter("All files", "*.*"));
+
+        String current = expectedOutputFileField.getText().trim();
+        if (!current.isEmpty()) {
+            File currentFile = new File(current);
+            File parent = currentFile.getParentFile();
+            if (parent != null && parent.exists()) fc.setInitialDirectory(parent);
+        } else {
+            File home = new File(System.getProperty("user.home"));
+            if (home.exists()) fc.setInitialDirectory(home);
+        }
+
         File file = fc.showOpenDialog(stage);
         if (file != null) expectedOutputFileField.setText(file.getAbsolutePath());
     }
