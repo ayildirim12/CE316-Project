@@ -58,6 +58,7 @@ public class ConfigurationDialogController {
         PRESETS.put("Ruby",       new Preset("solution.rb",  false, "",      "",          "ruby",    "solution.rb"));
         PRESETS.put("Go",         new Preset("main.go",      true,  "go",    "build -o main", "./main", ""));
         PRESETS.put("Rust",       new Preset("main.rs",      true,  "rustc", "-o main",   "./main",  ""));
+        PRESETS.put("Haskell",    new Preset("Main.hs",      true,  "ghc",   "-o main",   "./main",  ""));
     }
 
     public static ConfigurationDialogController create(Window owner) throws IOException {

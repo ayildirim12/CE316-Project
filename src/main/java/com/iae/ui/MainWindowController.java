@@ -214,12 +214,20 @@ public class MainWindowController {
                     "-fx-padding:2 4 2 4;" +
                     "-fx-min-width:0;");
                 del.setOnAction(e -> {
-                    int idx = getIndex();
-                    testCaseRows.remove(idx);
-                    if (currentProject != null && idx < currentProject.getTestCases().size()) {
-                        currentProject.getTestCases().remove(idx);
-                        saveCurrentProject();
-                    }
+                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                            "Are you sure you want to delete this test case?",
+                            ButtonType.YES, ButtonType.NO);
+                    confirm.setHeaderText("Delete Test Case");
+                    confirm.showAndWait().ifPresent(btn -> {
+                        if (btn == ButtonType.YES) {
+                            int idx = getIndex();
+                            testCaseRows.remove(idx);
+                            if (currentProject != null && idx < currentProject.getTestCases().size()) {
+                                currentProject.getTestCases().remove(idx);
+                                saveCurrentProject();
+                            }
+                        }
+                    });
                 });
             }
 
