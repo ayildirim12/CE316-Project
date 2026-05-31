@@ -46,9 +46,6 @@ import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.stage.Window;
- 
-/*  Stashed merge errors were present here for some reason -- needs testing! 
-*/
 /**
  * Controls the main application window:
  * menu bar, sidebar project tree, project-detail pane, and Run button.
@@ -841,16 +838,6 @@ public class MainWindowController {
     }
 
     
-
-    private void showComingSoon(String feature, Button tab) {
-        setActiveTab(tab);
-        Alert a = new Alert(Alert.AlertType.INFORMATION,
-                feature + " will be available in the next version of IAE.",
-                ButtonType.OK);
-        a.setHeaderText("Coming in Next Version");
-        a.showAndWait();
-        setActiveTab(projectsTab);
-    }
 
     private void setActiveTab(Button tab) {
         if (activeTab != null)
