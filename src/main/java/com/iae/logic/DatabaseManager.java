@@ -80,6 +80,7 @@ public class DatabaseManager {
             stmt.execute("DROP TABLE IF EXISTS RESULTS");
             stmt.execute("DROP TABLE IF EXISTS TESTCASES");
             stmt.execute("DROP TABLE IF EXISTS PROJECTS");
+            stmt.execute("DROP TABLE IF EXISTS CONFIGURATIONS");
         }
         initSchema(connection);
     }
