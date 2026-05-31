@@ -8,7 +8,6 @@ submissions, defines **Test Cases** (input arguments + expected output), and hit
 case, compares the output, and reports a per-student / per-test-case result —
 all stored locally in an SQLite database so projects can be reopened any time.
 
-> Course: **CE 316 — Software Engineering**, Section 2, Team 1.
 
 > See [CE316_DesignDocument_Section2_Team1.pdf](CE316_DesignDocument_Section2_Team1.pdf) for the full design document.
 
